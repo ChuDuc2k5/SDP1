@@ -1,0 +1,41 @@
+<section class="max-w-3xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold text-yellow-500 mb-6">
+        Edit Booking
+    </h1>
+
+    <form action="/account/bookings/{{booking._id}}/edit" method="POST"
+          class="bg-stone-800 p-6 rounded-xl border border-stone-700 space-y-4">
+
+        <!-- Breakfast -->
+        <div>
+            <label class="block mb-2">Add Breakfast</label>
+            <select name="hasBreakfast" class="w-full p-2 rounded bg-stone-900 border border-stone-700">
+                <option value="true" {{#if booking.hasBreakfast}}selected{{/if}}>Yes</option>
+                <option value="false" {{#unless booking.hasBreakfast}}selected{{/unless}}>No</option>
+            </select>
+        </div>
+
+        <!-- Note -->
+        <div>
+            <label class="block mb-2">Note</label>
+            <textarea name="observations" rows="4"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700">
+                {{booking.observations}}
+            </textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-between">
+            <button type="submit"
+                class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+                Save Changes
+            </button>
+
+            <a href="/account/bookings/{{booking._id}}"
+               class="text-stone-400 hover:text-white">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</section>

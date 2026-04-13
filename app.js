@@ -2,6 +2,7 @@ import express from 'express';
 import { engine } from 'express-handlebars';
 import cabinRoute from './routes/cabin.route.js';
 import userRoute from './routes/user.route.js'; // Import route cho phần Account/Guest
+import bookingRoute from './routes/booking.route.js'; // Import route cho phần Booking
 
 const app = express();
 const port = 3000;
@@ -27,7 +28,7 @@ app.use(express.urlencoded({ extended: true })); // Hỗ trợ đọc dữ liệ
 // Các tuyến đường (Routes)
 app.use('/cabins', cabinRoute);
 app.use('/account', userRoute); // Route cho trang cá nhân của khách vãng lai (Kha đảm nhiệm)
-
+app.use('/booking', bookingRoute); // Route cho phần Booking (chuduc đảm nhiệm)
 // Tuyến đường (Route) mặc định
 app.get('/', (req, res) => {
     res.render('about'); 
