@@ -49,6 +49,16 @@ app.set("views", "./views");
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Hỗ trợ đọc dữ liệu từ form sau này
+app.use(session({
+  secret: 'sdp1-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false }
+}));
+app.use((req, res, next) => {
+  res.locals.currentUser = req.session.user;
+  next();
+});
 
 // Các tuyến đường (Routes)
 app.use("/cabins", cabinRoute);
