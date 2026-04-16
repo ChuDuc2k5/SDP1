@@ -1,0 +1,54 @@
+<section class="max-w-4xl mx-auto px-6 py-10">
+    <div class="bg-stone-800 p-8 rounded-3xl border border-stone-700 shadow-xl">
+        <h1 class="text-4xl font-bold text-yellow-500 mb-4">Book {{cabin.name}}</h1>
+        <p class="text-stone-300 mb-8">Choose your dates and guest details, then confirm your reservation.</p>
+
+        <form action="/booking/create" method="POST" class="space-y-6">
+            <input type="hidden" name="cabinId" value="{{cabin._id}}" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block mb-2 text-stone-400">Check-in</label>
+                    <input type="date" name="startDate" required
+                        class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white" />
+                </div>
+                <div>
+                    <label class="block mb-2 text-stone-400">Check-out</label>
+                    <input type="date" name="endDate" required
+                        class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block mb-2 text-stone-400">Number of guests</label>
+                    <input type="number" name="numGuests" min="1" max="{{cabin.maxCapacity}}" value="1" required
+                        class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white" />
+                </div>
+                <div>
+                    <label class="block mb-2 text-stone-400">Add breakfast</label>
+                    <select name="hasBreakfast"
+                        class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block mb-2 text-stone-400">Special requests</label>
+                <textarea name="observations" rows="4"
+                    class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white"
+                    placeholder="Notes for your stay"></textarea>
+            </div>
+
+            <div class="flex flex-col gap-4 md:flex-row justify-between items-center">
+                <a href="/cabins/detail/{{cabin._id}}" class="inline-block text-stone-300 hover:text-white">Back to
+                    cabin</a>
+                <button type="submit"
+                    class="bg-yellow-500 text-stone-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-400">Confirm
+                    Booking</button>
+            </div>
+        </form>
+    </div>
+</section>
