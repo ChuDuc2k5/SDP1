@@ -1,9 +1,10 @@
-import express from "express";
-import { engine } from "express-handlebars";
+import express from 'express';
+import { engine } from 'express-handlebars';
+import adminRoute from './routes/admin.route.js';
 import cabinRoute from "./routes/cabin.route.js";
 import bookingRoute from "./routes/booking.route.js";
 import accountRoutes from "./routes/account.routes.js";
-import userRoutes from "./routes/user.route.js"; // Import route cho phần Account/Guest
+import userRoutes from "./routes/user.route.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.routes.js";
@@ -92,10 +93,17 @@ app.use("/booking", bookingRoute);
 app.use("/account", accountRoutes); // Route cho trang cá nhân của khách vãng lai (Kha đảm nhiệm)
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use('/admin', adminRoute);
 
 // Tuyến đường (Route) mặc định
 app.get("/", (req, res) => {
     res.render('about');
+});
+// Thêm Route xử lý Logout
+app.get('/logout', (req, res) => {
+    // Nếu sau này team dùng express-session, bạn sẽ thêm lệnh: req.session.destroy();
+    // Hiện tại chỉ cần redirect về trang chủ là xong.
+    res.redirect('/');
 });
 
 app.listen(port, () =>
