@@ -17,35 +17,29 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 // =====================================================
 
-router.get('/', (req, res) => {
-    res.redirect('/admin/cabins');
-});
-
 // ==================== GET ALL CABINS (ĐÃ SỬA AN TOÀN) ====================
 router.get('/cabins', async (req, res) => {
     try {
         let list = await cabinModel.findAll();
 
-        console.log('🔍 Raw data from findAll():', list);   // ← Dùng để debug
+
 
         // Bảo vệ tối đa
         if (!list || !Array.isArray(list)) {
             list = [];
         }
 
-        // Loại bỏ các phần tử undefined / null
+        
         list = list.filter(cabin => cabin && typeof cabin === 'object' && cabin !== null);
 
-        console.log(`✅ Loaded ${list.length} valid cabins`);
+        
 
         res.render('vwAdmin/manage-cabin', {
-            layout: 'admin',
             cabins: list
         });
     } catch (err) {
         console.error('❌ Lỗi khi load cabins:', err);
         res.render('vwAdmin/manage-cabin', {
-            layout: 'admin',
             cabins: [],
             error: 'Không thể tải danh sách cabin'
         });
@@ -54,7 +48,7 @@ router.get('/cabins', async (req, res) => {
 
 // ==================== CREATE CABIN ====================
 router.get('/cabins/add', (req, res) => {
-    res.render('vwAdmin/create-cabin', { layout: 'admin' });
+    res.render('vwAdmin/create-cabin', {  });
 });
 
 router.post('/cabins/add', upload.single('image'), async (req, res) => {
@@ -84,7 +78,7 @@ router.get('/cabins/edit/:id', async (req, res) => {
     if (!cabin) return res.redirect('/admin/cabins');
 
     res.render('vwAdmin/edit-cabin', {
-        layout: 'admin',
+        
         cabin: cabin
     });
 });
@@ -108,7 +102,7 @@ router.post('/cabins/edit/:id', upload.single('image'), async (req, res) => {
         res.redirect('/admin/cabins');
     } catch (err) {
         console.error('❌ Lỗi khi cập nhật cabin:', err);
-        res.redirect('/admin/cabins');
+        res.redirect('/vwAdmin/cabins');
     }
 });
 
@@ -125,11 +119,11 @@ router.post('/cabins/clone/:id', async (req, res) => {
 
 // ==================== SETTINGS & ORDERS ====================
 router.get('/settings', (req, res) => { 
-    res.render('vwAdmin/settings', { layout: 'admin' }); 
+    res.render('vwAdmin/settings', {  }); 
 });
 
 router.get('/orders', (req, res) => { 
-    res.render('vwAdmin/manage-orders', { layout: 'admin' }); 
+    res.render('vwAdmin/manage-orders', {  }); 
 });
 router.post('/settings', async (req, res) => {
     try {
@@ -143,13 +137,14 @@ router.post('/settings', async (req, res) => {
         console.log('✅ UPDATED:', settings);
 
         res.render('vwAdmin/settings', {
-            layout: 'admin',
+            
             success: true
         });
 
     } catch (err) {
         res.render('vwAdmin/settings', {
-            layout: 'admin',
+            
+
             error: true
         });
     }
