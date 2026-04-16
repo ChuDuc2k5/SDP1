@@ -1,0 +1,64 @@
+<div class="d-flex justify-content-center align-items-center vh-100"
+  style="background: url('/images/aboutBackground.jpg') center/cover no-repeat;">
+
+  <div class="card bg-dark text-white p-4 shadow-lg" style="width: 450px; border-radius: 20px;">
+
+    <h2 class="text-center fw-bold">My Profile</h2>
+    <p class="text-warning text-center">
+      Update your personal information
+    </p>
+
+    <form method="POST" action="/user/profile">
+
+      <!-- Full Name -->
+      <div class="mb-3">
+        <label class="form-label">Full Name</label>
+        <input name="fullName" value="{{user.fullName}}" class="form-control bg-dark text-white border-warning" />
+      </div>
+
+      <!-- Email (readonly) -->
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input value="{{user.email}}" class="form-control bg-secondary text-white" readonly />
+      </div>
+
+      <!-- Phone -->
+      <div class="mb-3">
+        <label class="form-label">Phone</label>
+        <input name="phone" value="{{user.phone}}" class="form-control bg-dark text-white border-warning" />
+      </div>
+
+      <!-- Date of Birth -->
+      <div class="mb-3">
+        <label class="form-label">Date of Birth</label>
+        <input type="date" name="dateOfBirth" value="{{user.dateOfBirth}}"
+          class="form-control bg-dark text-white border-warning" />
+      </div>
+
+      {{#if error}}
+      <p class="text-danger text-center">{{error}}</p>
+      {{/if}}
+
+      {{#if success}}
+      <p class="text-success text-center">{{success}}</p>
+      {{/if}}
+
+      <button class="btn btn-warning w-100 fw-bold mt-2">
+        Save Changes
+      </button>
+
+      <a href="/user/change-password" class="btn btn-outline-light w-100 mt-2">
+        Change Password
+      </a>
+
+    </form>
+
+    <div class="text-center mt-3">
+      <i class="bi bi-arrow-left"></i>
+      <a href="/" class="text-warning text-decoration-underline">
+        Back Home
+      </a>
+    </div>
+
+  </div>
+</div>

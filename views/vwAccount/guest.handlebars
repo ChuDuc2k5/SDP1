@@ -2,20 +2,28 @@
     <div class="max-w-md w-full bg-stone-800 border border-stone-700 rounded-2xl p-10 text-center shadow-2xl">
         <div class="mb-6 flex justify-center">
             <div class="bg-stone-700 p-4 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
             </div>
         </div>
-        
+
         <h2 class="text-3xl font-bold text-white mb-2">Welcome, Traveler!</h2>
         <p class="text-stone-400 mb-8">Please login to manage your luxury bookings at Serene Stays.</p>
-        
+
         <div class="space-y-4">
-            <button class="w-full bg-yellow-600 hover:bg-yellow-500 text-stone-900 font-bold py-3 rounded-xl transition-all uppercase tracking-wide">
+            <a href="/auth/login"
+                class="block w-full text-center bg-yellow-600 hover:bg-yellow-500 text-stone-900 font-bold py-3 rounded-xl transition-all uppercase tracking-wide">
                 Login Now
-            </button>
-            <p class="text-stone-500 text-sm">Don't have an account? <span class="text-yellow-500 cursor-pointer">Sign up</span></p>
+            </a>
+            <p class="text-stone-500 text-sm text-center">
+                Don't have an account?
+                <a href="/auth/signup" class="text-yellow-500 hover:underline">
+                    Sign up
+                </a>
+            </p>
         </div>
     </div>
 </div>

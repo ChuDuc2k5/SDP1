@@ -1,0 +1,99 @@
+<section class="max-w-3xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold text-yellow-500 mb-6">
+        Edit Booking
+    </h1>
+
+    <!-- Cabin Info -->
+    <div class="bg-stone-800 p-6 rounded-xl border border-stone-700 mb-6">
+
+        <div class="flex gap-6 items-center">
+            <!-- Image -->
+            <img src="{{booking.cabin.image}}" alt="{{booking.cabin.name}}"
+                class="w-32 h-24 object-cover rounded-lg border border-stone-700">
+
+            <!-- Info -->
+            <div>
+                <h2 class="text-xl font-semibold">
+                    {{booking.cabin.name}}
+                </h2>
+
+                <p class="text-stone-400 text-sm">
+                    Capacity: {{booking.cabin.maxCapacity}} guests
+                </p>
+
+                <p class="text-stone-400 text-sm">
+                    Price: ${{booking.cabin.regularPrice}}
+                </p>
+
+                <!-- Discount -->
+                {{#if booking.cabin.discount}}
+                <p class="text-green-400 text-sm">
+                    Discount: {{booking.cabin.discount}}%
+                </p>
+                {{/if}}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Edit Form -->
+    <form action="/booking/edit/{{booking._id}}" method="POST"
+        class="bg-stone-800 p-6 rounded-xl border border-stone-700 space-y-4">
+
+        <!-- Check-in Date -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Check-in Date</label>
+            <input type="date" name="startDate" required value="{{formatDate booking.startDate 'YYYY-MM-DD'}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+        </div>
+
+        <!-- Check-out Date -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Check-out Date</label>
+            <input type="date" name="endDate" required value="{{formatDate booking.endDate 'YYYY-MM-DD'}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+        </div>
+
+        <!-- Number of Guests -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Number of Guests</label>
+            <input type="number" name="numGuests" min="1" max="{{booking.cabin.maxCapacity}}" required
+                value="{{booking.numGuests}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+        </div>
+
+        <!-- Note -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Notes / Observations</label>
+            <textarea name="observations" rows="4" placeholder="Add any special requests or notes"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">{{booking.observations}}</textarea>
+        </div>
+
+        <!-- Status (Admin Only) -->
+        {{#if currentUser}}
+        {{#if (eq currentUser.role 'admin')}}
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Booking Status (Admin)</label>
+            <select name="status" class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+                <option value="confirmed" {{#if (eq booking.status 'confirmed' )}}selected{{/if}}>Confirmed</option>
+                <option value="cancelled" {{#if (eq booking.status 'cancelled' )}}selected{{/if}}>Cancelled</option>
+                <option value="pending" {{#if (eq booking.status 'pending' )}}selected{{/if}}>Pending</option>
+            </select>
+        </div>
+        {{/if}}
+        {{/if}}
+
+        <!-- Actions -->
+        <div class="flex justify-between items-center mt-6">
+            <button type="submit"
+                class="bg-yellow-500 text-black px-6 py-2 rounded-lg hover:bg-yellow-400 font-semibold">
+                💾 Save Changes
+            </button>
+
+            <a href="/booking/detail/{{booking._id}}" class="text-stone-400 hover:text-white">
+                ← Back
+            </a>
+        </div>
+
+    </form>
+</section>
