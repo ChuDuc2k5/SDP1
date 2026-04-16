@@ -36,12 +36,41 @@ router.get('/detail/:id', async (req, res) => {
 });
 
 router.post('/create', async (req, res) => {
-    const { cabinId, userId, startDate, endDate } = req.body;
+    const { cabin_id, user_id, check_in, check_out } = req.body;
     try {
-        const newBooking = await bookingModel.create({ cabinId, userId, startDate, endDate });
+        const newBooking = await bookingModel.create({ cabin_id, user_id, check_in, check_out });
         res.redirect(`/booking/detail/${newBooking.id}`);
     } catch (error) {
         console.error("Lỗi khi tạo đặt phòng:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+router.get('/edit/:id', async (req, res) => {
+    const id = req.params.id;
+    try {
+        const booking = await bookingModel.findById(id);
+        if (!booking) {
+            return res.status(404).send("Booking not found");
+        }
+        res.render('vxBooking/editbooking', { booking: booking });
+    } catch (error) {
+        console.error("Lỗi khi lấy chi tiết đặt phòng:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}); 
+router.post('/edit/:id', async (req, res) => {
+    const id = req.params.id;
+    const { cabin_id, user_id, check_in, check_out } = req.body;
+
+    try {
+        const updatedBooking = await bookingModel.update(id, { cabin_id, user_id, check_in, check_out });
+        if (!updatedBooking) {
+            return res.status(404).send("Booking not found");
+        }
+        res.redirect(`/booking/detail/${updatedBooking.id}`);
+    } catch (error) {
+        console.error("Lỗi khi cập nhật đặt phòng:", error);
         res.status(500).send("Internal Server Error");
     }
 });

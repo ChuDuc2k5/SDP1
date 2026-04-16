@@ -3,13 +3,49 @@
         Edit Booking
     </h1>
 
+    <!-- Cabin Info -->
+    <div class="bg-stone-800 p-6 rounded-xl border border-stone-700 mb-6">
+        
+        <div class="flex gap-6 items-center">
+            <!-- Image -->
+            <img src="{{booking.cabin.image}}" 
+                 alt="{{booking.cabin.name}}"
+                 class="w-32 h-24 object-cover rounded-lg border border-stone-700">
+
+            <!-- Info -->
+            <div>
+                <h2 class="text-xl font-semibold">
+                    {{booking.cabin.name}}
+                </h2>
+
+                <p class="text-stone-400 text-sm">
+                    Capacity: {{booking.cabin.maxCapacity}} guests
+                </p>
+
+                <p class="text-stone-400 text-sm">
+                    Price: ${{booking.cabin.regularPrice}}
+                </p>
+
+                <!-- Discount -->
+                {{#if booking.cabin.discount}}
+                <p class="text-green-400 text-sm">
+                    Discount: {{booking.cabin.discount}}%
+                </p>
+                {{/if}}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Edit Form -->
     <form action="/account/bookings/{{booking._id}}/edit" method="POST"
           class="bg-stone-800 p-6 rounded-xl border border-stone-700 space-y-4">
 
         <!-- Breakfast -->
         <div>
             <label class="block mb-2">Add Breakfast</label>
-            <select name="hasBreakfast" class="w-full p-2 rounded bg-stone-900 border border-stone-700">
+            <select name="hasBreakfast" 
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700">
                 <option value="true" {{#if booking.hasBreakfast}}selected{{/if}}>Yes</option>
                 <option value="false" {{#unless booking.hasBreakfast}}selected{{/unless}}>No</option>
             </select>
@@ -19,13 +55,11 @@
         <div>
             <label class="block mb-2">Note</label>
             <textarea name="observations" rows="4"
-                class="w-full p-2 rounded bg-stone-900 border border-stone-700">
-                {{booking.observations}}
-            </textarea>
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700">{{booking.observations}}</textarea>
         </div>
 
         <!-- Actions -->
-        <div class="flex justify-between">
+        <div class="flex justify-between items-center">
             <button type="submit"
                 class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
                 Save Changes
