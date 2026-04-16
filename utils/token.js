@@ -5,9 +5,10 @@ const SECRET = "secret_key";
 export const generateToken = (user) => {
   return jwt.sign(
     {
-      id: user.id,
-      email: user.email,          // ✅ phải đúng
-      fullName: user.fullName,   // 🔥 FIX ở đây
+      id: user._id || user.id,
+      userId: user._id || user.id,
+      email: user.email,
+      fullName: user.fullName,
       role: user.role,
     },
     SECRET,

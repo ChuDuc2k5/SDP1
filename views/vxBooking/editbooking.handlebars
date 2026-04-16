@@ -40,32 +40,58 @@
     <form action="/booking/edit/{{booking._id}}" method="POST"
         class="bg-stone-800 p-6 rounded-xl border border-stone-700 space-y-4">
 
-        <!-- Booking Type -->
+        <!-- Check-in Date -->
         <div>
-            <label class="block mb-2">Booking Type</label>
-            <select name="type" class="w-full p-2 rounded bg-stone-900 border border-stone-700">
-                <option value="basic" {{#if (eq booking.type 'basic' )}}selected{{/if}}>Basic</option>
-                <option value="breakfast" {{#if (eq booking.type 'breakfast' )}}selected{{/if}}>With Breakfast</option>
-                <option value="discount" {{#if (eq booking.type 'discount' )}}selected{{/if}}>With Discount</option>
-                <option value="premium" {{#if (eq booking.type 'premium' )}}selected{{/if}}>Premium</option>
-            </select>
+            <label class="block mb-2 text-yellow-500 font-semibold">Check-in Date</label>
+            <input type="date" name="startDate" required value="{{formatDate booking.startDate 'YYYY-MM-DD'}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+        </div>
+
+        <!-- Check-out Date -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Check-out Date</label>
+            <input type="date" name="endDate" required value="{{formatDate booking.endDate 'YYYY-MM-DD'}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+        </div>
+
+        <!-- Number of Guests -->
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Number of Guests</label>
+            <input type="number" name="numGuests" min="1" max="{{booking.cabin.maxCapacity}}" required
+                value="{{booking.numGuests}}"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
         </div>
 
         <!-- Note -->
         <div>
-            <label class="block mb-2">Note</label>
-            <textarea name="observations" rows="4"
-                class="w-full p-2 rounded bg-stone-900 border border-stone-700">{{booking.observations}}</textarea>
+            <label class="block mb-2 text-yellow-500 font-semibold">Notes / Observations</label>
+            <textarea name="observations" rows="4" placeholder="Add any special requests or notes"
+                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">{{booking.observations}}</textarea>
         </div>
 
+        <!-- Status (Admin Only) -->
+        {{#if currentUser}}
+        {{#if (eq currentUser.role 'admin')}}
+        <div>
+            <label class="block mb-2 text-yellow-500 font-semibold">Booking Status (Admin)</label>
+            <select name="status" class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+                <option value="confirmed" {{#if (eq booking.status 'confirmed' )}}selected{{/if}}>Confirmed</option>
+                <option value="cancelled" {{#if (eq booking.status 'cancelled' )}}selected{{/if}}>Cancelled</option>
+                <option value="pending" {{#if (eq booking.status 'pending' )}}selected{{/if}}>Pending</option>
+            </select>
+        </div>
+        {{/if}}
+        {{/if}}
+
         <!-- Actions -->
-        <div class="flex justify-between items-center">
-            <button type="submit" class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
-                Save Changes
+        <div class="flex justify-between items-center mt-6">
+            <button type="submit"
+                class="bg-yellow-500 text-black px-6 py-2 rounded-lg hover:bg-yellow-400 font-semibold">
+                💾 Save Changes
             </button>
 
             <a href="/booking/detail/{{booking._id}}" class="text-stone-400 hover:text-white">
-                Cancel
+                ← Back
             </a>
         </div>
 

@@ -1,5 +1,5 @@
-import {findUserByEmail,createUser,updatePassword} from "../models/user.model.js";
-import {getOTPByEmail, deleteOTPByEmail} from "../models/otp.model.js";
+import { findUserByEmail, createUser, updatePassword } from "../models/user.model.js";
+import { getOTPByEmail, deleteOTPByEmail } from "../models/otp.model.js";
 import { createOTP } from "../models/otp.model.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
 import { generateToken } from "../utils/token.js";
@@ -21,11 +21,15 @@ export const loginService = async ({ email, password }) => {
 
   const token = generateToken(user);
 
-  return { message: "Login success", token,
+  return {
+    message: "Login success", token,
     user: {
+      userId: user._id || user.id,
+      id: user._id || user.id,
       role: user.role,
-      email : user.email,
-      name : user.name,
+      email: user.email,
+      fullName: user.fullName,
+      name: user.fullName,
     }
   };
 };
@@ -74,7 +78,7 @@ export const identityVerification = async ({ email }) => {
 export const verifyOTPService = async ({ email, otp }) => {
   const record = await db("otps")
     .where({ email })
-    .orderBy("expiresAt", "desc") 
+    .orderBy("expiresAt", "desc")
     .first();
 
   if (!record) {
@@ -93,7 +97,7 @@ export const verifyOTPService = async ({ email, otp }) => {
 };
 
 export const resetPasswordService = async ({ email, password }) => {
-  const cleanEmail = email.trim().toLowerCase(); 
+  const cleanEmail = email.trim().toLowerCase();
   const user = await db("users")
     .whereRaw('LOWER("email") = ?', [cleanEmail])
     .first();
