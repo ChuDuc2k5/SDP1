@@ -1,0 +1,140 @@
+<div class="max-w-3xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+    <!-- Tiêu đề bên trái -->
+    <h2 class="text-3xl font-serif font-bold text-yellow-500">Edit Cabin</h2>
+
+    <!-- Phần bên phải: Back + Duplicate (ngang hàng) -->
+    <div class="flex items-center gap-4">
+        
+        <!-- NÚT BACK (đã xịn xò) -->
+        <a href="/admin/cabins" 
+           class="inline-flex items-center gap-3 px-6 py-3 bg-stone-800 hover:bg-stone-700 border border-stone-700 hover:border-yellow-500 rounded-3xl text-stone-300 hover:text-yellow-500 text-sm font-medium transition-all duration-200 shadow-md hover:shadow-yellow-500/10">
+            <span class="text-2xl leading-none">←</span>
+            Back to Cabins
+        </a>
+    </div>
+</div>
+
+    <form action="/admin/cabins/edit/{{cabin._id}}" method="POST" enctype="multipart/form-data" class="bg-stone-950/50 border border-stone-800 rounded-2xl p-8 space-y-6">
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Các trường khác giữ nguyên -->
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-stone-300 mb-2">Cabin Name</label>
+                <input type="text" name="name" value="{{cabin.name}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500" required>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-stone-300 mb-2">Max Capacity</label>
+                <input type="number" name="maxCapacity" value="{{cabin.maxCapacity}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-stone-300 mb-2">Regular Price ($)</label>
+                <input type="number" name="regularPrice" value="{{cabin.regularPrice}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-stone-300 mb-2">Discount (%)</label>
+                <input type="number" name="discount" value="{{cabin.discount}}" min="0" max="100" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-stone-300 mb-2">Description</label>
+                <textarea name="description" rows="4" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">{{cabin.description}}</textarea>
+            </div>
+
+            <!-- Ảnh hiện tại -->
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-stone-300 mb-2">Current Image</label>
+                <div class="flex items-center gap-4 bg-stone-900 border border-stone-700 rounded-2xl p-4">
+                    <div class="w-28 h-28 rounded-xl bg-cover bg-center border border-stone-600 flex-shrink-0" 
+                         style="background-image: url('{{cabin.image}}');"></div>
+                    <div class="text-sm">
+                        <p class="text-stone-400">Ảnh hiện tại:</p>
+                        <p class="font-mono text-stone-500">{{cabin.image}}</p>
+                        <p class="text-xs text-stone-400 mt-2">Upload ảnh mới bên dưới để thay thế.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload ảnh mới -->
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-stone-300 mb-2">Upload New Image (optional)</label>
+                
+                <input type="file" id="image-upload" name="image" accept="image/*" class="hidden">
+
+                <div id="upload-area" 
+                     class="border border-dashed border-stone-600 hover:border-yellow-500 rounded-2xl p-8 text-center cursor-pointer transition-colors">
+                    <div class="mx-auto w-12 h-12 flex items-center justify-center text-4xl mb-3">📤</div>
+                    <p class="text-stone-100 font-medium">Chọn ảnh mới từ máy tính</p>
+                    <p class="text-stone-400 text-sm mt-1">hoặc kéo thả vào đây (PNG, JPG, GIF)</p>
+                </div>
+
+                <div id="preview-section" class="mt-6 hidden">
+                    <p class="text-xs uppercase tracking-widest text-stone-400 mb-3">Ảnh preview mới</p>
+                    <div class="relative rounded-3xl overflow-hidden border border-stone-700 bg-stone-900">
+                        <img id="image-preview" src="" class="w-full h-auto max-h-[320px] object-cover" alt="Preview">
+                        <button type="button" onclick="removePreview()" 
+                                class="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl w-9 h-9 flex items-center justify-center text-2xl leading-none shadow-lg transition-colors">
+                        </button>
+                    </div>
+                    <p class="text-xs text-stone-500 mt-2">Ảnh này sẽ thay thế ảnh hiện tại khi lưu</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-stone-800 flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Script preview (giống create) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileInput = document.getElementById('image-upload');
+        const uploadArea = document.getElementById('upload-area');
+        const previewSection = document.getElementById('preview-section');
+        const imagePreview = document.getElementById('image-preview');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imagePreview.src = e.target.result;
+                    previewSection.classList.remove('hidden');
+                    uploadArea.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag & Drop
+        uploadArea.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadArea.classList.add('border-yellow-500', 'bg-yellow-500/10');
+        });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('border-yellow-500', 'bg-yellow-500/10'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('border-yellow-500', 'bg-yellow-500/10');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                fileInput.files = e.dataTransfer.files;
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        });
+
+        window.removePreview = function () {
+            previewSection.classList.add('hidden');
+            uploadArea.classList.remove('hidden');
+            fileInput.value = '';
+        };
+    });
+</script>

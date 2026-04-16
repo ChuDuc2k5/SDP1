@@ -2,7 +2,7 @@ import express from 'express';
 import { engine } from 'express-handlebars';
 import cabinRoute from './routes/cabin.route.js';
 import userRoute from './routes/user.route.js'; // Import route cho phần Account/Guest
-
+import adminRoute from './routes/admin.route.js';
 const app = express();
 const port = 3000;
 
@@ -27,10 +27,15 @@ app.use(express.urlencoded({ extended: true })); // Hỗ trợ đọc dữ liệ
 // Các tuyến đường (Routes)
 app.use('/cabins', cabinRoute);
 app.use('/account', userRoute); // Route cho trang cá nhân của khách vãng lai (Kha đảm nhiệm)
-
+app.use('/admin', adminRoute);
 // Tuyến đường (Route) mặc định
 app.get('/', (req, res) => {
     res.render('about'); 
 });
-
+// Thêm Route xử lý Logout
+app.get('/logout', (req, res) => {
+    // Nếu sau này team dùng express-session, bạn sẽ thêm lệnh: req.session.destroy();
+    // Hiện tại chỉ cần redirect về trang chủ là xong.
+    res.redirect('/');
+});
 app.listen(port, () => console.log(`Server đang chạy tại http://localhost:${port}`));

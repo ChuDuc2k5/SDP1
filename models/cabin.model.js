@@ -12,5 +12,17 @@ export default {
 
     findById(id) {
         return db('cabins').where('_id', id).first();
-    }
+    },
+    add(cabinData) {
+        return db('cabins').insert(cabinData);
+    },
+
+    update(id, cabinData) {
+        return db('cabins').where('_id', id).update(cabinData);
+    },
+
+    delete(id) {
+        return db('cabins').where('_id', id).del();
+    },
+
 };
