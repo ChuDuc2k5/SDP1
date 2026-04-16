@@ -1,0 +1,36 @@
+<section class="max-w-6xl mx-auto px-6 py-10">
+    <h1 class="text-3xl font-bold text-yellow-500 mb-6">
+        Welcome, {{user.fullName}}
+    </h1>
+
+    <div class="grid md:grid-cols-3 gap-6">
+
+        <!-- Profile -->
+        <div class="bg-stone-800 p-6 rounded-xl border border-stone-700">
+            <h2 class="text-xl font-semibold mb-2">Profile</h2>
+            <p class="text-stone-400">{{user.email}}</p>
+            <a href="/account/profile" class="text-yellow-500 hover:underline mt-2 inline-block">
+                View Profile
+            </a>
+        </div>
+
+        <!-- Bookings -->
+        <div class="bg-stone-800 p-6 rounded-xl border border-stone-700">
+            <h2 class="text-xl font-semibold mb-2">My Bookings</h2>
+            <p class="text-stone-400">View & manage your reservations</p>
+            <a href="/account/bookings" class="text-yellow-500 hover:underline mt-2 inline-block">
+                Go to Bookings
+            </a>
+        </div>
+
+        <!-- Settings -->
+        <div class="bg-stone-800 p-6 rounded-xl border border-stone-700">
+            <h2 class="text-xl font-semibold mb-2">Settings</h2>
+            <p class="text-stone-400">Update your preferences</p>
+            <a href="/account/settings" class="text-yellow-500 hover:underline mt-2 inline-block">
+                Manage Settings
+            </a>
+        </div>
+
+    </div>
+</section>

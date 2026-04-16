@@ -1,7 +1,9 @@
 import express from 'express';
+import session from 'express-session';
 import { engine } from 'express-handlebars';
 import cabinRoute from './routes/cabin.route.js';
 import userRoute from './routes/user.route.js'; // Import route cho phần Account/Guest
+import bookingRoute from './routes/booking.route.js'; // Import route cho phần Booking
 
 const app = express();
 const port = 3000;
@@ -20,17 +22,27 @@ app.set('view engine', 'handlebars');
 app.set('views', './views');
 
 // Middleware
-app.use(express.static('public')); 
+app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Hỗ trợ đọc dữ liệu từ form sau này
+app.use(session({
+  secret: 'sdp1-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false }
+}));
+app.use((req, res, next) => {
+  res.locals.currentUser = req.session.user;
+  next();
+});
 
 // Các tuyến đường (Routes)
 app.use('/cabins', cabinRoute);
 app.use('/account', userRoute); // Route cho trang cá nhân của khách vãng lai (Kha đảm nhiệm)
-
+app.use('/booking', bookingRoute); // Route cho phần Booking (chuduc đảm nhiệm)
 // Tuyến đường (Route) mặc định
 app.get('/', (req, res) => {
-    res.render('about'); 
+    res.render('about');
 });
 
 app.listen(port, () => console.log(`Server đang chạy tại http://localhost:${port}`));
