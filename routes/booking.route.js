@@ -81,7 +81,7 @@ router.post('/create', async (req, res) => {
         return res.redirect('/account/profile');
     }
 
-    const { cabinId, startDate, endDate, numGuests, hasBreakfast, observations } = req.body;
+    const { cabinId, startDate, endDate, numGuests, observations, type } = req.body;
 
     try {
         const cabin = await cabinModel.findById(cabinId);
@@ -96,9 +96,9 @@ router.post('/create', async (req, res) => {
             endDate,
             numGuests: Number(numGuests) || 1,
             cabinPrice: cabin.regularPrice,
-            hasBreakfast: hasBreakfast === 'true',
             observations,
-            status: 'confirmed'
+            discount: cabin.discount,
+            type: type || 'basic'
         };
 
         const newBooking = await bookingModel.create(bookingData);
@@ -139,7 +139,7 @@ router.post('/edit/:id/cancel', async (req, res) => {
 
 router.post('/edit/:id', async (req, res) => {
     const id = req.params.id;
-    const { cabin_id, user_id, check_in, check_out, hasBreakfast, observations } = req.body;
+    const { cabin_id, user_id, check_in, check_out, observations, type } = req.body;
 
     try {
         const updatedBooking = await bookingModel.update(id, {
@@ -147,8 +147,8 @@ router.post('/edit/:id', async (req, res) => {
             user_id,
             check_in,
             check_out,
-            hasBreakfast: hasBreakfast === 'true',
-            observations
+            observations,
+            type
         });
         if (!updatedBooking) {
             return res.status(404).send("Booking not found");

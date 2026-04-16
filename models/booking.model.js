@@ -1,4 +1,5 @@
-import db from  '../dbHelper/db.js';
+import db from '../dbHelper/db.js';
+import { BookingFactory } from '../patterns/factory/booking/bookingFactory.js';
 
 const attachCabin = (rows) => rows.map(row => ({
     ...row,
@@ -67,7 +68,9 @@ export default {
                 }
             } : undefined);
     },
-    create(booking) {
+    create(bookingData) {
+        // Use Factory Method to create booking with pricing strategy
+        const booking = BookingFactory.createBooking(bookingData.type || 'basic', bookingData);
         return db('bookings').insert(booking).returning('*').then(rows => rows[0]);
     },
     update(id, booking) {

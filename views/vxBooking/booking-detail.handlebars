@@ -13,9 +13,9 @@
             <p><strong>Check-in:</strong> {{booking.startDate}}</p>
             <p><strong>Check-out:</strong> {{booking.endDate}}</p>
             <p><strong>Guests:</strong> {{booking.numGuests}}</p>
-            <p><strong>Breakfast:</strong> {{#if booking.hasBreakfast}}Yes{{else}}No{{/if}}</p>
+            <p><strong>Type:</strong> {{booking.type}}</p>
             <p><strong>Price:</strong> ${{booking.cabinPrice}}</p>
-            <p><strong>Status:</strong> 
+            <p><strong>Status:</strong>
                 <span class="
                     {{#if (eq booking.status 'confirmed')}}text-green-400{{/if}}
                     {{#if (eq booking.status 'cancelled')}}text-red-400{{/if}}
@@ -27,8 +27,8 @@
         </div>
 
         <div class="mt-6 flex gap-4">
-            <a href="/booking/edit/{{booking._id}}" 
-               class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+            <a href="/booking/edit/{{booking._id}}"
+                class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
                 Edit Booking
             </a>
 

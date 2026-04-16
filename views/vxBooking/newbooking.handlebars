@@ -26,11 +26,14 @@
                         class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white" />
                 </div>
                 <div>
-                    <label class="block mb-2 text-stone-400">Add breakfast</label>
-                    <select name="hasBreakfast"
-                        class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white">
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
+                    <label class="block mb-2 text-stone-400">Booking Type</label>
+                    <select name="type" class="w-full rounded-lg border border-stone-700 bg-stone-900 p-3 text-white">
+                        <option value="basic">Basic</option>
+                        <option value="breakfast">With Breakfast (+$15/night)</option>
+                        {{#if cabin.discount}}
+                        <option value="discount">With Discount (-{{cabin.discount}}%)</option>
+                        <option value="premium">Premium (Breakfast + Discount)</option>
+                        {{/if}}
                     </select>
                 </div>
             </div>
