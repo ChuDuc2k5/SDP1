@@ -113,8 +113,17 @@ router.post('/cabins/delete/:id', async (req, res) => {
 });
 
 router.post('/cabins/clone/:id', async (req, res) => {
-    const cabinId = req.params.id;
-    res.send(`Đã kích hoạt Prototype Pattern để sao chép cabin ID: ${cabinId}`);
+    try {
+        const duplicatedCabin = await cabinModel.duplicateById(req.params.id);
+        if (!duplicatedCabin) {
+            return res.redirect('/admin/cabins');
+        }
+
+        res.redirect(`/admin/cabins/edit/${duplicatedCabin._id}`);
+    } catch (err) {
+        console.error('❌ Lỗi khi duplicate cabin:', err);
+        res.redirect('/admin/cabins');
+    }
 });
 
 // ==================== SETTINGS & ORDERS ====================

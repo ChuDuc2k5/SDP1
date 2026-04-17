@@ -5,6 +5,12 @@
 
     <!-- Phần bên phải: Back + Duplicate (ngang hàng) -->
     <div class="flex items-center gap-4">
+        <form action="/admin/cabins/clone/{{cabin._id}}" method="POST" class="inline-block" onsubmit="return confirm('Tạo một cabin mới từ mẫu này?');">
+            <button type="submit"
+                class="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-3xl text-white text-sm font-medium transition-all duration-200 shadow-md">
+                Duplicate Cabin
+            </button>
+        </form>
         
         <!-- NÚT BACK (đã xịn xò) -->
         <a href="/admin/cabins" 
