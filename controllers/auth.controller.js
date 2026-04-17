@@ -69,7 +69,7 @@ const authController = {
       });
 
       if (user.role === "admin") {
-        return res.redirect("/admin");
+        return res.redirect("/admin/cabins");
       }
 
       return res.redirect("/");

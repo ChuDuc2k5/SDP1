@@ -9,9 +9,6 @@ router.get("/signup", authController.getSignupPage);
 router.get("/forget-password", authController.getForgotPassword);
 router.get("/verify-otp", authController.getVerifyOTP);
 router.get("/reset-password", authController.getResetPassword);
-router.get("/admin", requireAuth, requireAdmin, (req, res) => {
-  res.render("vwAdmin/dashboard");
-});
 
 router.post("/login", authController.login);
 router.post("/signup", authController.signup);
