@@ -1,4 +1,4 @@
-import db from "../config/db.js";
+import db from "../dbHelper/db.js";
 
 export const findUserByEmail = async (email) => {
   const user = await db("users").where({ email }).first();

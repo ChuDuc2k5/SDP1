@@ -1,16 +1,31 @@
-import knex from 'knex';
+import knex from "knex";
+import dotenv from "dotenv";
 
-const db = knex({
-  client: 'pg', 
-  connection: {
-    host: 'aws-1-ap-northeast-2.pooler.supabase.com',
-    port: 6543,
-    user: 'postgres.sofhbcvvnkoexbyopeai',
-    password: 'minhquan1112',
-    database: 'postgres',
-    ssl: { rejectUnauthorized: false } 
-  },
-  pool: { min: 0, max: 7 }
-});
+dotenv.config();
 
-export default db; 
+class Database {
+  static instance;
+
+  constructor() {
+    this.db = knex({
+      client: "pg",
+      connection: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME,
+        ssl: { rejectUnauthorized: false },
+      },
+    });
+  }
+
+  static getInstance() {
+    if (!Database.instance) {
+      Database.instance = new Database();
+    }
+    return Database.instance.db;
+  }
+}
+
+export default Database.getInstance();
