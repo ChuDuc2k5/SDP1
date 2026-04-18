@@ -5,7 +5,7 @@ import { hashPassword, comparePassword } from "../utils/hash.js";
 import { generateToken } from "../utils/token.js";
 import { sendOTP } from "../utils/mailer.js";
 import bcrypt from "bcrypt";
-import db from "../config/db.js";
+import db from "../dbHelper/db.js";
 
 // fake memory OTP (có thể thay bằng DB)
 const otpStore = new Map();
