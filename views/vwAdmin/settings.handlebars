@@ -17,25 +17,25 @@
     <form action="/admin/settings" method="POST" class="bg-stone-950/50 border border-stone-800 rounded-2xl p-8 space-y-6">
         <div>
             <label class="block text-sm font-medium text-stone-300 mb-2">Breakfast Price ($)</label>
-            <input type="number" name="breakfastPrice" value="15" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
+            <input type="number" name="breakfastPrice" value="{{settings.breakfastPrice}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
             <p class="text-xs text-stone-500 mt-1">Price per guest per day.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-stone-300 mb-2">Minimum Booking Length (Nights)</label>
-                <input type="number" name="minBookingLength" value="2" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
+                <input type="number" name="minBookingLength" value="{{settings.miniBookingLength}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-stone-300 mb-2">Maximum Booking Length (Nights)</label>
-                <input type="number" name="maxBookingLength" value="30" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
+                <input type="number" name="maxBookingLength" value="{{settings.maxBookingLength}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
             </div>
         </div>
 
         <!-- === TRƯỜNG MỚI: Maximum Number of Guests === -->
         <div>
             <label class="block text-sm font-medium text-stone-300 mb-2">Maximum Number of Guests</label>
-            <input type="number" name="maxGuests" value="10" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
+            <input type="number" name="maxGuests" value="{{settings.maxNumberOfGuests}}" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-3 text-stone-100 focus:outline-none focus:border-yellow-500">
             <p class="text-xs text-stone-500 mt-1">Số khách tối đa cho mỗi booking (global setting).</p>
         </div>
 

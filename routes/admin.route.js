@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import cabinModel from '../models/cabin.model.js';
+import settingModel from '../models/setting.model.js';
 
 const router = express.Router();
 
@@ -127,8 +128,20 @@ router.post('/cabins/clone/:id', async (req, res) => {
 });
 
 // ==================== SETTINGS & ORDERS ====================
-router.get('/settings', (req, res) => { 
-    res.render('vwAdmin/settings', {  }); 
+router.get('/settings', async (req, res) => {
+    try {
+        const settings = await settingModel.getCurrent();
+
+        res.render('vwAdmin/settings', {
+            settings
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi tải settings:', err);
+        res.render('vwAdmin/settings', {
+            settings: null,
+            error: true
+        });
+    }
 });
 
 router.get('/orders', (req, res) => { 
@@ -136,23 +149,30 @@ router.get('/orders', (req, res) => {
 });
 router.post('/settings', async (req, res) => {
     try {
-        const settings = {
-            breakfastPrice: parseInt(req.body.breakfastPrice) || 0,
-            minBookingLength: parseInt(req.body.minBookingLength) || 1,
-            maxBookingLength: parseInt(req.body.maxBookingLength) || 30,
-            maxGuests: parseInt(req.body.maxGuests) || 1
-        };
-
-        console.log('✅ UPDATED:', settings);
+        const settings = await settingModel.updateCurrent({
+            breakfastPrice: req.body.breakfastPrice,
+            miniBookingLength: req.body.minBookingLength,
+            maxBookingLength: req.body.maxBookingLength,
+            maxNumberOfGuests: req.body.maxGuests
+        });
 
         res.render('vwAdmin/settings', {
-            
+            settings,
             success: true
         });
 
     } catch (err) {
+        console.error('❌ Lỗi khi cập nhật settings:', err);
+
+        const fallbackSettings = {
+            breakfastPrice: Number(req.body.breakfastPrice) || 15,
+            miniBookingLength: Number(req.body.minBookingLength) || 1,
+            maxBookingLength: Number(req.body.maxBookingLength) || 30,
+            maxNumberOfGuests: Number(req.body.maxGuests) || 10
+        };
+
         res.render('vwAdmin/settings', {
-            
+            settings: fallbackSettings,
 
             error: true
         });

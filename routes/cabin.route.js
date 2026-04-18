@@ -1,5 +1,6 @@
 import express from 'express';
 import cabinModel from '../models/cabin.model.js';
+import rateModel from '../models/rate.model.js';
 // Import Factory từ đúng folder mới
 import { CabinSortFactory } from '../patterns/factory/cabin/factoryPattern.js';
 
@@ -36,7 +37,17 @@ router.get('/detail/:id', async (req, res) => {
     const id = req.params.id;
     const cabin = await cabinModel.findById(id);
     if (!cabin) return res.redirect('/cabins');
-    res.render('vwCabins/detail', { cabin: cabin });
+
+    const rates = await rateModel.findByCabinId(id);
+    const totalRating = rates.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+    const avgRating = rates.length ? (totalRating / rates.length).toFixed(1) : null;
+
+    res.render('vwCabins/detail', {
+        cabin: cabin,
+        rates,
+        avgRating,
+        hasRates: rates.length > 0
+    });
 });
 
 export default router;

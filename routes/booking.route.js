@@ -1,6 +1,7 @@
 import express from 'express';
 import bookingModel from '../models/booking.model.js';
 import cabinModel from '../models/cabin.model.js';
+import rateModel from '../models/rate.model.js';
 
 const router = express.Router();
 
@@ -61,7 +62,15 @@ router.get('/detail/:id', async (req, res) => {
             return res.status(403).send("Forbidden");
         }
 
-        res.render('vxBooking/booking-detail', { booking });
+        const existingRate = await rateModel.findByBookingId(id);
+
+        res.render('vxBooking/booking-detail', {
+            booking,
+            existingRate,
+            canRate: !existingRate,
+            rateSuccess: req.query.rate === 'success',
+            rateError: req.query.rate === 'error'
+        });
 
     } catch (error) {
         console.error("Lỗi khi lấy chi tiết đặt phòng:", error);

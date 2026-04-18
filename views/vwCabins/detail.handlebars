@@ -46,5 +46,32 @@
                 </div>
             </div>
         </div>
+
+        <div class="mt-12 border-t border-stone-800 pt-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-serif font-bold text-yellow-500">Guest Reviews</h2>
+                {{#if hasRates}}
+                <p class="text-stone-300">Average: <span class="text-yellow-400 font-semibold">{{avgRating}} / 5</span></p>
+                {{/if}}
+            </div>
+
+            {{#if hasRates}}
+            <div class="space-y-4">
+                {{#each rates}}
+                <div class="bg-stone-950/60 border border-stone-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-semibold text-stone-200">{{this.userFullName}}</p>
+                        <p class="text-yellow-400 font-bold">{{this.rating}} / 5</p>
+                    </div>
+                    <p class="text-stone-400">{{this.comment}}</p>
+                </div>
+                {{/each}}
+            </div>
+            {{else}}
+            <div class="bg-stone-950/60 border border-stone-800 rounded-xl p-4 text-stone-400">
+                This cabin has no reviews yet.
+            </div>
+            {{/if}}
+        </div>
     </div>
 </div>

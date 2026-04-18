@@ -5,6 +5,7 @@ import cabinRoute from "./routes/cabin.route.js";
 import bookingRoute from "./routes/booking.route.js";
 import accountRoutes from "./routes/account.routes.js";
 import userRoutes from "./routes/user.route.js";
+import rateRoutes from "./routes/rate.route.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.routes.js";
@@ -93,6 +94,7 @@ app.use("/booking", bookingRoute);
 app.use("/account", accountRoutes); // Route cho trang cá nhân của khách vãng lai (Kha đảm nhiệm)
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use("/rates", rateRoutes);
 app.use('/admin', adminRoute);
 
 // Tuyến đường (Route) mặc định
