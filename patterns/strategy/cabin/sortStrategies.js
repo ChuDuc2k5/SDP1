@@ -22,3 +22,9 @@ export class DefaultSort extends SortStrategy {
         return query.orderBy('name', 'asc');
     }
 }
+
+export class DiscountDescending extends SortStrategy {
+    apply(query) {
+        return query.orderByRaw('CAST(discount AS DECIMAL) DESC');
+    }
+}

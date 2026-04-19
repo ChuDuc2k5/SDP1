@@ -1,4 +1,4 @@
-import { PriceAscending, CapacityDescending, DefaultSort } from '../../strategy/cabin/sortStrategies.js';
+import { PriceAscending, CapacityDescending, DefaultSort, DiscountDescending } from '../../strategy/cabin/sortStrategies.js';
 
 export class CabinSortFactory {
     static getStrategy(type) {
@@ -7,6 +7,8 @@ export class CabinSortFactory {
                 return new PriceAscending();
             case 'capacity-desc':
                 return new CapacityDescending();
+            case 'discount-desc':
+                return new DiscountDescending();
             default:
                 return new DefaultSort();
         }
