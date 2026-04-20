@@ -28,3 +28,10 @@ export class DiscountDescending extends SortStrategy {
         return query.orderByRaw('CAST(discount AS DECIMAL) DESC');
     }
 }
+
+export class RatingDescending extends SortStrategy {
+    apply(query) {
+
+        return query.orderBy('regularPrice', 'asc');
+    }
+}
