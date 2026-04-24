@@ -1,4 +1,4 @@
-import db from "../config/db.js";
+import db from "../dbHelper/db.js";
 
 // chuẩn hoá email (an toàn)
 const normalizeEmail = (email) => {
