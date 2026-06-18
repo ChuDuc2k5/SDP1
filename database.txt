@@ -26,10 +26,10 @@ CREATE TABLE users (
     gender VARCHAR(20),
     address TEXT,
     nationality VARCHAR(100),
-    role VARCHAR(30) NOT NULL DEFAULT 'user',
+    role VARCHAR(30) NOT NULL DEFAULT 'customer',
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NOW(),
-    CHECK (role IN ('user', 'customer', 'cabinOwner', 'admin'))
+    CHECK (role IN ('customer', 'cabinOwner'))
 );
 
 CREATE TABLE cabins (
@@ -160,20 +160,20 @@ CREATE INDEX idx_promotions_cabin_id ON promotions("cabinId");
 CREATE INDEX idx_booking_policies_cabin_id ON booking_policies("cabinId");
 
 INSERT INTO users (_id, "fullName", email, password, phone, "nationalId", "dateOfBirth", gender, address, nationality, role) VALUES
-('10000000-0000-4000-8000-000000000001', 'Admin SDP1', 'admin@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000001', 'ADM000001', '1990-01-15', 'male', 'District 1, Ho Chi Minh City', 'Vietnamese', 'admin'),
-('10000000-0000-4000-8000-000000000002', 'Olivia Cabin Owner', 'olivia.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000002', 'OWN000002', '1987-04-12', 'female', 'Da Lat, Lam Dong', 'Vietnamese', 'cabinOwner'),
-('10000000-0000-4000-8000-000000000003', 'Marcus Cabin Owner', 'marcus.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000003', 'OWN000003', '1985-09-30', 'male', 'Sa Pa, Lao Cai', 'Vietnamese', 'cabinOwner'),
-('10000000-0000-4000-8000-000000000004', 'Linh Cabin Owner', 'linh.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000004', 'OWN000004', '1991-02-18', 'female', 'Tam Dao, Vinh Phuc', 'Vietnamese', 'cabinOwner'),
-('10000000-0000-4000-8000-000000000005', 'Alice Nguyen', 'alice.nguyen@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000005', 'CUS000005', '1995-03-20', 'female', 'Thu Duc, Ho Chi Minh City', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000006', 'Bao Tran', 'bao.tran@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000006', 'CUS000006', '1992-08-12', 'male', 'Hai Chau, Da Nang', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000007', 'Chi Pham', 'chi.pham@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000007', 'CUS000007', '1988-11-05', 'female', 'Hoan Kiem, Ha Noi', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000008', 'David Le', 'david.le@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000008', 'CUS000008', '1998-06-22', 'male', 'Nha Trang, Khanh Hoa', 'Vietnamese', 'user'),
-('10000000-0000-4000-8000-000000000009', 'Eve Hoang', 'eve.hoang@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000009', 'CUS000009', '1996-12-09', 'female', 'Hue City, Thua Thien Hue', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000010', 'Finn Vo', 'finn.vo@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000010', 'CUS000010', '1993-07-17', 'male', 'Can Tho City', 'Vietnamese', 'user'),
-('10000000-0000-4000-8000-000000000011', 'Grace Bui', 'grace.bui@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000011', 'CUS000011', '1994-05-04', 'female', 'Quy Nhon, Binh Dinh', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000012', 'Henry Do', 'henry.do@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000012', 'CUS000012', '1989-10-27', 'male', 'Vung Tau, Ba Ria Vung Tau', 'Vietnamese', 'customer'),
-('10000000-0000-4000-8000-000000000013', 'Ivy Dang', 'ivy.dang@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000013', 'CUS000013', '1997-01-08', 'female', 'Phu Quoc, Kien Giang', 'Vietnamese', 'user'),
-('10000000-0000-4000-8000-000000000014', 'Jason Phan', 'jason.phan@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000014', 'CUS000014', '1991-09-14', 'male', 'Hoi An, Quang Nam', 'Vietnamese', 'customer');
+('10000000-0000-4000-8000-000000000001', 'Guest Customer', 'guest.customer@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000001', 'CUS000001', '1990-01-15', 'male', 'District 1, Ho Chi Minh City', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000002', 'Olivia Cabin Owner', 'olivia.owner@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000002', 'OWN000002', '1987-04-12', 'female', 'Da Lat, Lam Dong', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000003', 'Marcus Cabin Owner', 'marcus.owner@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000003', 'OWN000003', '1985-09-30', 'male', 'Sa Pa, Lao Cai', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000004', 'Linh Cabin Owner', 'linh.owner@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000004', 'OWN000004', '1991-02-18', 'female', 'Tam Dao, Vinh Phuc', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000005', 'Alice Nguyen', 'alice.nguyen@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000005', 'CUS000005', '1995-03-20', 'female', 'Thu Duc, Ho Chi Minh City', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000006', 'Bao Tran', 'bao.tran@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000006', 'CUS000006', '1992-08-12', 'male', 'Hai Chau, Da Nang', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000007', 'Chi Pham', 'chi.pham@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000007', 'CUS000007', '1988-11-05', 'female', 'Hoan Kiem, Ha Noi', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000008', 'David Le', 'david.le@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000008', 'CUS000008', '1998-06-22', 'male', 'Nha Trang, Khanh Hoa', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000009', 'Eve Hoang', 'eve.hoang@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000009', 'CUS000009', '1996-12-09', 'female', 'Hue City, Thua Thien Hue', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000010', 'Finn Vo', 'finn.vo@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000010', 'CUS000010', '1993-07-17', 'male', 'Can Tho City', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000011', 'Grace Bui', 'grace.bui@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000011', 'CUS000011', '1994-05-04', 'female', 'Quy Nhon, Binh Dinh', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000012', 'Henry Do', 'henry.do@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000012', 'CUS000012', '1989-10-27', 'male', 'Vung Tau, Ba Ria Vung Tau', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000013', 'Ivy Dang', 'ivy.dang@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000013', 'CUS000013', '1997-01-08', 'female', 'Phu Quoc, Kien Giang', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000014', 'Jason Phan', 'jason.phan@sdp1.test', '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.', '+84900000014', 'CUS000014', '1991-09-14', 'male', 'Hoi An, Quang Nam', 'Vietnamese', 'customer');
 
 INSERT INTO cabins (_id, "name", "maxCapacity", "regularPrice", discount, image, description, location, amenities) VALUES
 ('20000000-0000-4000-8000-000000000001', 'Pine Ridge Cabin', 2, 180.00, 0.00, 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'A quiet wooden cabin for couples near a pine forest, designed for slow mornings, reading, and private evenings by the fireplace.', 'Da Lat Pine Valley', 'WiFi, Fireplace, Forest View, Queen Bed, Coffee Bar'),
@@ -450,7 +450,7 @@ WHERE NOT EXISTS (
 ORDER BY c."name";
 
 UPDATE users
-SET password = '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m',
+SET password = '$2b$10$gK/Tj1BKS5rWdTFDrMXs0OWqi0rtYXuJqfbIcWFeV6CgCdMwiK/a.',
     "updatedAt" = NOW()
 WHERE email = 'alice.nguyen@sdp1.test';
 

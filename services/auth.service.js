@@ -1,91 +1,138 @@
-import { findUserByEmail, createUser, updatePassword } from "../models/user.model.js";
-import { getOTPByEmail, deleteOTPByEmail } from "../models/otp.model.js";
-import { createOTP } from "../models/otp.model.js";
-import { hashPassword, comparePassword } from "../utils/hash.js";
+import {
+  create as createUser,
+  findByEmailInsensitive,
+  updatePassword,
+} from "../models/user.model.js";
+import {
+  createOTP,
+  deleteOTPByEmail,
+  getOTPByEmail,
+} from "../models/otp.model.js";
+import { comparePassword, hashPassword } from "../utils/hash.js";
 import { generateToken } from "../utils/token.js";
-import { sendOTP } from "../utils/mailer.js";
-import bcrypt from "bcrypt";
-import db from "../config/db.js";
+import { sendOtpEmail } from "../utils/mailer.js";
+import { normalizeUser, ROLE } from "../utils/sessionUser.js";
 
-// fake memory OTP (có thể thay bằng DB)
-const otpStore = new Map();
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
 
-// ===== LOGIN =====
+const assertEmail = (email) => {
+  const cleanEmail = normalizeEmail(email);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+    throw new Error("Invalid email format");
+  }
+
+  return cleanEmail;
+};
+
 export const loginService = async ({ email, password }) => {
-  const user = await findUserByEmail(email);
+  const cleanEmail = assertEmail(email);
 
+  if (!password) {
+    throw new Error("Password is required");
+  }
+
+  const user = await findByEmailInsensitive(cleanEmail);
   if (!user) throw new Error("User not found");
 
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) throw new Error("Wrong password");
 
-  const token = generateToken(user);
+  const sessionUser = normalizeUser(user);
+  const token = generateToken(sessionUser);
 
   return {
-    message: "Login success", token,
-    user: {
-      userId: user._id || user.id,
-      id: user._id || user.id,
-      role: user.role,
-      email: user.email,
-      fullName: user.fullName,
-      name: user.fullName,
-    }
+    message: "Login success",
+    token,
+    user: sessionUser,
   };
 };
 
-// ===== SIGNUP =====
 export const signupService = async (data) => {
-  const exist = await findUserByEmail(data.email);
+  const email = assertEmail(data.email);
+
+  if (!data.fullName?.trim()) {
+    throw new Error("Full name is required");
+  }
+
+  if (!data.password || data.password.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  const exist = await findByEmailInsensitive(email);
   if (exist) throw new Error("Email already exists");
 
   const hashed = await hashPassword(data.password);
 
-  await createUser({
-    ...data,
+  const created = await createUser({
+    fullName: data.fullName.trim(),
+    email,
     password: hashed,
+    phone: data.phone,
+    nationalId: data.nationalId,
+    dateOfBirth: data.dateOfBirth,
+    gender: data.gender,
+    address: data.address,
+    nationality: data.nationality,
+    role: ROLE.CUSTOMER,
   });
 
-  return { message: "Signup success" };
+  return { message: "Signup success", user: normalizeUser(created) };
 };
 
-// ===== FORGOT PASSWORD =====
 export const identityVerification = async ({ email }) => {
-  const user = await findUserByEmail(email);
+  const cleanEmail = assertEmail(email);
+  console.log(`[forgot-password] email received: ${cleanEmail}`);
+
+  const user = await findByEmailInsensitive(cleanEmail);
   if (!user) throw new Error("Email not found");
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  console.log(`[forgot-password] OTP generated for ${cleanEmail}: ${otp}`);
 
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
-
-  // xoá OTP cũ
-  await deleteOTPByEmail(email);
-
-  // lưu OTP mới
+  await deleteOTPByEmail(cleanEmail);
   await createOTP({
-    email,
+    email: cleanEmail,
     otp,
     expiresAt,
-    userID: user.id,
+    userId: user._id,
   });
+  console.log(`[forgot-password] OTP saved to DB for ${cleanEmail}`);
 
-  await sendOTP(email, otp);
+  console.log(`[forgot-password] sending mail to user email: ${cleanEmail}`);
+  try {
+    const mailResult = await sendOtpEmail(cleanEmail, otp);
+
+    if (mailResult?.sent) {
+      console.log(`[forgot-password] mail sent successfully to ${cleanEmail}`);
+    } else if (mailResult?.fallback) {
+      console.log(`[forgot-password] mail fallback used; OTP logged for ${cleanEmail}`);
+    }
+  } catch (err) {
+    console.error(`[forgot-password] mail error for ${cleanEmail}: ${err.message}`);
+    throw err;
+  }
 
   return true;
 };
 
-// ===== VERIFY OTP =====
 export const verifyOTPService = async ({ email, otp }) => {
-  const record = await db("otps")
-    .where({ email })
-    .orderBy("expiresAt", "desc")
-    .first();
+  const cleanEmail = assertEmail(email);
+
+  if (!otp) {
+    throw new Error("OTP is required");
+  }
+
+  const record = await getOTPByEmail(cleanEmail);
 
   if (!record) {
     throw new Error("OTP not found");
   }
 
-  if (record.otp !== otp.trim()) {
+  if (record.otp !== String(otp).trim()) {
     throw new Error("Invalid OTP");
   }
 
@@ -97,20 +144,19 @@ export const verifyOTPService = async ({ email, otp }) => {
 };
 
 export const resetPasswordService = async ({ email, password }) => {
-  const cleanEmail = email.trim().toLowerCase();
-  const user = await db("users")
-    .whereRaw('LOWER("email") = ?', [cleanEmail])
-    .first();
+  const cleanEmail = assertEmail(email);
 
+  if (!password || password.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  const user = await findByEmailInsensitive(cleanEmail);
   if (!user) {
     throw new Error("User not found");
   }
 
-  const hash = await bcrypt.hash(password, 10);
-
-  await db("users")
-    .where({ email: user.email })
-    .update({ password: hash });
+  const hashed = await hashPassword(password);
+  await updatePassword(user.email, hashed);
 
   return true;
 };

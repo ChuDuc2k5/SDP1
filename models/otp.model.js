@@ -1,32 +1,24 @@
 import db from "../config/db.js";
 
-// chuẩn hoá email (an toàn)
-const normalizeEmail = (email) => {
-  if (typeof email !== "string") return "";
-  return email.trim().toLowerCase();
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
+export const deleteOTPByEmail = (email) => {
+  return db("otps").where({ email: normalizeEmail(email) }).del();
 };
 
-// xoá OTP cũ
-export const deleteOTPByEmail = async (email) => {
-  return await db("otps")
-    .where({ email: normalizeEmail(email) })
-    .del();
-};
-
-// tạo OTP mới
-export const createOTP = async ({ email, otp, expiresAt, userId }) => {
-  return await db("otps").insert({
+export const createOTP = ({ email, otp, expiresAt, userId }) => {
+  return db("otps").insert({
     email: normalizeEmail(email),
     otp: typeof otp === "string" ? otp.trim() : otp,
     expiresAt,
-    userId,
+    userId: userId || null,
   });
 };
 
-// lấy OTP mới nhất
-export const getOTPByEmail = async (email) => {
-  return await db("otps")
-    .where({ email })
+export const getOTPByEmail = (email) => {
+  return db("otps")
+    .where({ email: normalizeEmail(email) })
     .orderBy("expiresAt", "desc")
     .first();
-}
+};

@@ -62,13 +62,8 @@ const authController = {
 
       // Save user to session
       req.session.user = user;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-        }
-      });
 
-      if (user.role === "admin") {
+      if (user.role === "cabinOwner") {
         return res.redirect("/admin/cabins");
       }
 
@@ -82,7 +77,7 @@ const authController = {
 
   logout: (req, res) => {
     res.clearCookie("token");
-    return res.redirect("/");
+    req.session?.destroy(() => res.redirect("/"));
   },
 
   // ===== SIGNUP =====
@@ -159,7 +154,6 @@ const authController = {
   // ===== RESET PASSWORD =====
   postResetPassword: async (req, res) => {
     const { email, password, confirmPassword } = req.body;
-    console.log("EMAIL FROM FORM:", email);
     if (!email) {
       return res.redirect("/auth/forget-password");
     }

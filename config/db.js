@@ -1,7 +1,7 @@
 import knex from "knex";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 class Database {
   static instance;
