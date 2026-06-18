@@ -1,0 +1,475 @@
+BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+DROP TABLE IF EXISTS rates CASCADE;
+DROP TABLE IF EXISTS images CASCADE;
+DROP TABLE IF EXISTS promotions CASCADE;
+DROP TABLE IF EXISTS booking_policies CASCADE;
+DROP TABLE IF EXISTS otps CASCADE;
+DROP TABLE IF EXISTS bookings CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS cabins CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+DROP TYPE IF EXISTS role_enum CASCADE;
+DROP TYPE IF EXISTS booking_status_enum CASCADE;
+
+CREATE TABLE users (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "fullName" VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone VARCHAR(30),
+    "nationalId" VARCHAR(50),
+    "dateOfBirth" DATE,
+    gender VARCHAR(20),
+    address TEXT,
+    nationality VARCHAR(100),
+    role VARCHAR(30) NOT NULL DEFAULT 'user',
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    CHECK (role IN ('user', 'customer', 'cabinOwner', 'admin'))
+);
+
+CREATE TABLE cabins (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" VARCHAR(255) NOT NULL,
+    "maxCapacity" INT NOT NULL,
+    "regularPrice" NUMERIC(12,2) NOT NULL,
+    discount NUMERIC(12,2) DEFAULT 0,
+    image TEXT NOT NULL,
+    description TEXT,
+    location TEXT,
+    amenities TEXT,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    CHECK ("maxCapacity" > 0),
+    CHECK ("regularPrice" > 0),
+    CHECK (discount >= 0)
+);
+
+CREATE TABLE booking_policies (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "cabinId" UUID NOT NULL REFERENCES cabins(_id) ON DELETE CASCADE,
+    "breakfastPrice" NUMERIC(12,2) DEFAULT 15,
+    "miniBookingLength" INT DEFAULT 1,
+    "maxBookingLength" INT DEFAULT 30,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    UNIQUE ("cabinId"),
+    CHECK ("breakfastPrice" >= 0),
+    CHECK ("miniBookingLength" > 0),
+    CHECK ("maxBookingLength" >= "miniBookingLength")
+);
+
+CREATE TABLE promotions (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "cabinId" UUID NOT NULL REFERENCES cabins(_id) ON DELETE CASCADE,
+    "discountPercent" NUMERIC(5,2) NOT NULL,
+    "startDate" DATE NOT NULL,
+    "endDate" DATE NOT NULL,
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    CHECK ("endDate" >= "startDate"),
+    CHECK ("discountPercent" >= 0 AND "discountPercent" <= 100)
+);
+
+CREATE TABLE images (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "cabinId" UUID NOT NULL REFERENCES cabins(_id) ON DELETE CASCADE,
+    "imageUrl" TEXT NOT NULL,
+    "name" VARCHAR(255),
+    "isCover" BOOLEAN DEFAULT FALSE,
+    "createdAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE bookings (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE,
+    "cabinId" UUID NOT NULL REFERENCES cabins(_id) ON DELETE CASCADE,
+    "startDate" DATE NOT NULL,
+    "endDate" DATE NOT NULL,
+    "numNights" INT NOT NULL DEFAULT 1,
+    "numGuests" INT NOT NULL DEFAULT 1,
+    "cabinPrice" NUMERIC(12,2) NOT NULL,
+    "extrasPrice" NUMERIC(12,2) DEFAULT 0,
+    "totalPrice" NUMERIC(12,2) NOT NULL DEFAULT 0,
+    status VARCHAR(30) NOT NULL DEFAULT 'unconfirmed',
+    "hasBreakfast" BOOLEAN DEFAULT FALSE,
+    "isPaid" BOOLEAN DEFAULT FALSE,
+    observations TEXT,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    CHECK ("endDate" > "startDate"),
+    CHECK ("numNights" > 0),
+    CHECK ("numGuests" > 0),
+    CHECK (status IN ('unconfirmed', 'confirmed', 'checked-in', 'checked-out', 'cancelled', 'pending'))
+);
+
+CREATE TABLE rates (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE,
+    "cabinId" UUID NOT NULL REFERENCES cabins(_id) ON DELETE CASCADE,
+    "bookingId" UUID REFERENCES bookings(_id) ON DELETE SET NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    UNIQUE ("bookingId")
+);
+
+CREATE TABLE otps (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(10) NOT NULL,
+    "expiresAt" TIMESTAMP NOT NULL,
+    "userId" UUID REFERENCES users(_id) ON DELETE CASCADE,
+    "createdAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE settings (
+    _id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "miniBookingLength" INT NOT NULL DEFAULT 1,
+    "maxBookingLength" INT NOT NULL DEFAULT 30,
+    "maxNumberOfGuests" INT NOT NULL DEFAULT 10,
+    "breakfastPrice" NUMERIC(12,2) NOT NULL DEFAULT 15,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    CHECK ("miniBookingLength" > 0),
+    CHECK ("maxBookingLength" >= "miniBookingLength"),
+    CHECK ("maxNumberOfGuests" > 0),
+    CHECK ("breakfastPrice" >= 0)
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_bookings_user_id ON bookings("userId");
+CREATE INDEX idx_bookings_cabin_id ON bookings("cabinId");
+CREATE INDEX idx_bookings_status ON bookings(status);
+CREATE INDEX idx_bookings_start_date ON bookings("startDate");
+CREATE INDEX idx_bookings_end_date ON bookings("endDate");
+CREATE INDEX idx_rates_user_id ON rates("userId");
+CREATE INDEX idx_rates_cabin_id ON rates("cabinId");
+CREATE INDEX idx_rates_booking_id ON rates("bookingId");
+CREATE INDEX idx_otps_email ON otps(email);
+CREATE INDEX idx_otps_expires_at ON otps("expiresAt");
+CREATE INDEX idx_images_cabin_id ON images("cabinId");
+CREATE INDEX idx_promotions_cabin_id ON promotions("cabinId");
+CREATE INDEX idx_booking_policies_cabin_id ON booking_policies("cabinId");
+
+INSERT INTO users (_id, "fullName", email, password, phone, "nationalId", "dateOfBirth", gender, address, nationality, role) VALUES
+('10000000-0000-4000-8000-000000000001', 'Admin SDP1', 'admin@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000001', 'ADM000001', '1990-01-15', 'male', 'District 1, Ho Chi Minh City', 'Vietnamese', 'admin'),
+('10000000-0000-4000-8000-000000000002', 'Olivia Cabin Owner', 'olivia.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000002', 'OWN000002', '1987-04-12', 'female', 'Da Lat, Lam Dong', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000003', 'Marcus Cabin Owner', 'marcus.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000003', 'OWN000003', '1985-09-30', 'male', 'Sa Pa, Lao Cai', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000004', 'Linh Cabin Owner', 'linh.owner@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000004', 'OWN000004', '1991-02-18', 'female', 'Tam Dao, Vinh Phuc', 'Vietnamese', 'cabinOwner'),
+('10000000-0000-4000-8000-000000000005', 'Alice Nguyen', 'alice.nguyen@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000005', 'CUS000005', '1995-03-20', 'female', 'Thu Duc, Ho Chi Minh City', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000006', 'Bao Tran', 'bao.tran@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000006', 'CUS000006', '1992-08-12', 'male', 'Hai Chau, Da Nang', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000007', 'Chi Pham', 'chi.pham@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000007', 'CUS000007', '1988-11-05', 'female', 'Hoan Kiem, Ha Noi', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000008', 'David Le', 'david.le@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000008', 'CUS000008', '1998-06-22', 'male', 'Nha Trang, Khanh Hoa', 'Vietnamese', 'user'),
+('10000000-0000-4000-8000-000000000009', 'Eve Hoang', 'eve.hoang@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000009', 'CUS000009', '1996-12-09', 'female', 'Hue City, Thua Thien Hue', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000010', 'Finn Vo', 'finn.vo@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000010', 'CUS000010', '1993-07-17', 'male', 'Can Tho City', 'Vietnamese', 'user'),
+('10000000-0000-4000-8000-000000000011', 'Grace Bui', 'grace.bui@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000011', 'CUS000011', '1994-05-04', 'female', 'Quy Nhon, Binh Dinh', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000012', 'Henry Do', 'henry.do@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000012', 'CUS000012', '1989-10-27', 'male', 'Vung Tau, Ba Ria Vung Tau', 'Vietnamese', 'customer'),
+('10000000-0000-4000-8000-000000000013', 'Ivy Dang', 'ivy.dang@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000013', 'CUS000013', '1997-01-08', 'female', 'Phu Quoc, Kien Giang', 'Vietnamese', 'user'),
+('10000000-0000-4000-8000-000000000014', 'Jason Phan', 'jason.phan@sdp1.test', '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m', '+84900000014', 'CUS000014', '1991-09-14', 'male', 'Hoi An, Quang Nam', 'Vietnamese', 'customer');
+
+INSERT INTO cabins (_id, "name", "maxCapacity", "regularPrice", discount, image, description, location, amenities) VALUES
+('20000000-0000-4000-8000-000000000001', 'Pine Ridge Cabin', 2, 180.00, 0.00, 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'A quiet wooden cabin for couples near a pine forest, designed for slow mornings, reading, and private evenings by the fireplace.', 'Da Lat Pine Valley', 'WiFi, Fireplace, Forest View, Queen Bed, Coffee Bar'),
+('20000000-0000-4000-8000-000000000002', 'Lakeview Lodge', 4, 260.00, 10.00, 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', 'A bright family lodge with broad lake views, a private deck, warm interiors, and easy access to kayaking paths.', 'Tuyen Lam Lake, Da Lat', 'WiFi, Lake View, BBQ, Kitchen, Private Deck'),
+('20000000-0000-4000-8000-000000000003', 'Forest Retreat', 3, 220.00, 0.00, 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'A compact retreat surrounded by evergreen trails, ideal for small groups who want privacy and clean mountain air.', 'Bidoup Nui Ba National Park', 'WiFi, Hiking Trail, Fireplace, Mountain Air, Breakfast'),
+('20000000-0000-4000-8000-000000000004', 'Hilltop Family Cabin', 6, 340.00, 5.00, 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'A spacious hilltop stay with multiple bedrooms, a large living room, and an outdoor dining space for family trips.', 'Tam Dao Hillside', 'WiFi, BBQ, Family Rooms, Valley View, Parking'),
+('20000000-0000-4000-8000-000000000005', 'Riverstone Cabin', 2, 200.00, 15.00, 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'A riverside cabin with stone paths, soft lighting, and a calm seating area close to the water.', 'Nam Cat Tien Riverside', 'WiFi, River View, Outdoor Seating, Queen Bed, Breakfast'),
+('20000000-0000-4000-8000-000000000006', 'Sunset Chalet', 5, 310.00, 0.00, 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80', 'A modern chalet with wide windows, open living space, and sunset views across a quiet valley.', 'Sa Pa West Ridge', 'WiFi, Sunset View, Kitchen, Fireplace, Balcony'),
+('20000000-0000-4000-8000-000000000007', 'Meadow Cabin', 4, 240.00, 0.00, 'https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&w=1200&q=80', 'A peaceful cabin beside open meadows, suitable for weekend stays and relaxed family breakfasts.', 'Moc Chau Meadow', 'WiFi, Meadow View, BBQ, Kitchenette, Pet Friendly'),
+('20000000-0000-4000-8000-000000000008', 'Grand Vista Cabin', 8, 480.00, 5.00, 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80', 'A large premium cabin for groups, with panoramic mountain views, generous lounge areas, and a long dining table.', 'Sa Pa Panorama Pass', 'WiFi, Mountain View, Hot Tub, BBQ, Large Kitchen'),
+('20000000-0000-4000-8000-000000000009', 'Cedar Grove House', 3, 210.00, 8.00, 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'A cedar-framed house with clean interiors, warm lighting, and a quiet garden for afternoon tea.', 'Da Lat Cedar Grove', 'WiFi, Garden, Fireplace, Coffee Bar, Parking'),
+('20000000-0000-4000-8000-000000000010', 'Moonlight Cabin', 2, 190.00, 0.00, 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80', 'A small romantic cabin with a skylight bedroom, soft linen, and a private corner for stargazing.', 'Mang Den Forest Road', 'WiFi, Skylight, Forest View, Queen Bed, Private Terrace'),
+('20000000-0000-4000-8000-000000000011', 'Aspen Creek Cabin', 5, 295.00, 12.00, 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80', 'A creekside cabin with modern rooms, a sheltered porch, and enough space for a group of friends.', 'Moc Chau Creekside', 'WiFi, Creek View, BBQ, Porch, Full Kitchen'),
+('20000000-0000-4000-8000-000000000012', 'Orchid Valley Lodge', 6, 360.00, 0.00, 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80', 'A refined valley lodge with orchid gardens, broad windows, and flexible sleeping space for families.', 'Bao Loc Orchid Valley', 'WiFi, Garden View, Breakfast, Family Rooms, Parking'),
+('20000000-0000-4000-8000-000000000013', 'Cloudline Cabin', 4, 275.00, 7.00, 'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1200&q=80', 'A cabin near the clouds with a quiet balcony, warm wood textures, and direct access to mountain viewpoints.', 'Sa Pa Cloudline', 'WiFi, Balcony, Mountain View, Fireplace, Breakfast'),
+('20000000-0000-4000-8000-000000000014', 'Bamboo Lake Cabin', 3, 230.00, 0.00, 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80', 'A lake-adjacent cabin framed by bamboo, suitable for couples or a small family wanting a calm stay.', 'Ba Be Lake Village', 'WiFi, Lake Access, Bamboo Garden, Kitchenette, Kayak Rental'),
+('20000000-0000-4000-8000-000000000015', 'Maple Garden Cabin', 4, 250.00, 10.00, 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=1200&q=80', 'A garden cabin with colorful maples, bright rooms, and an outdoor grill area for slow weekend meals.', 'Da Lat Maple Garden', 'WiFi, Garden, BBQ, Fireplace, Family Friendly'),
+('20000000-0000-4000-8000-000000000016', 'Harbor Wood Cabin', 5, 320.00, 0.00, 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'A coastal wood cabin near a quiet harbor, combining sea breeze with a warm lodge atmosphere.', 'Lang Co Harbor', 'WiFi, Sea Breeze, BBQ, Kitchen, Parking'),
+('20000000-0000-4000-8000-000000000017', 'Silver Fern Cabin', 2, 175.00, 5.00, 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'A minimal two-person cabin surrounded by ferns, simple furniture, and a quiet work-friendly corner.', 'Mang Den Fern Valley', 'WiFi, Work Desk, Forest View, Coffee Bar, Fireplace'),
+('20000000-0000-4000-8000-000000000018', 'Golden Summit Cabin', 8, 520.00, 8.00, 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'A high-capacity summit cabin with a generous lounge, hot tub, and open terrace for group gatherings.', 'Fansipan Foothill', 'WiFi, Hot Tub, Mountain View, BBQ, Large Dining Room'),
+('20000000-0000-4000-8000-000000000019', 'Stone Path Cabin', 6, 370.00, 0.00, 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'A six-person cabin reached by a stone path, with warm lights, a covered porch, and private garden corners.', 'Tam Dao Stone Path', 'WiFi, Covered Porch, Garden, Fireplace, Kitchen'),
+('20000000-0000-4000-8000-000000000020', 'Evergreen Grand Lodge', 10, 650.00, 12.00, 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', 'A grand lodge for large groups, with multiple bedrooms, a wide deck, and flexible indoor entertainment space.', 'Da Lat Evergreen Estate', 'WiFi, Large Deck, BBQ, Hot Tub, Entertainment Room');
+
+INSERT INTO booking_policies (_id, "cabinId", "breakfastPrice", "miniBookingLength", "maxBookingLength") VALUES
+('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 12.00, 1, 14),
+('30000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 15.00, 2, 21),
+('30000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000003', 14.00, 1, 18),
+('30000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000004', 16.00, 2, 30),
+('30000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000005', 12.00, 1, 10),
+('30000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000006', 18.00, 2, 21),
+('30000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000007', 13.00, 1, 14),
+('30000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000008', 20.00, 2, 30),
+('30000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000009', 14.00, 1, 18),
+('30000000-0000-4000-8000-000000000010', '20000000-0000-4000-8000-000000000010', 12.00, 1, 12),
+('30000000-0000-4000-8000-000000000011', '20000000-0000-4000-8000-000000000011', 16.00, 2, 21),
+('30000000-0000-4000-8000-000000000012', '20000000-0000-4000-8000-000000000012', 17.00, 2, 24),
+('30000000-0000-4000-8000-000000000013', '20000000-0000-4000-8000-000000000013', 15.00, 1, 18),
+('30000000-0000-4000-8000-000000000014', '20000000-0000-4000-8000-000000000014', 13.00, 1, 14),
+('30000000-0000-4000-8000-000000000015', '20000000-0000-4000-8000-000000000015', 15.00, 1, 20),
+('30000000-0000-4000-8000-000000000016', '20000000-0000-4000-8000-000000000016', 18.00, 2, 21),
+('30000000-0000-4000-8000-000000000017', '20000000-0000-4000-8000-000000000017', 11.00, 1, 10),
+('30000000-0000-4000-8000-000000000018', '20000000-0000-4000-8000-000000000018', 22.00, 3, 30),
+('30000000-0000-4000-8000-000000000019', '20000000-0000-4000-8000-000000000019', 17.00, 2, 24),
+('30000000-0000-4000-8000-000000000020', '20000000-0000-4000-8000-000000000020', 25.00, 3, 30);
+
+INSERT INTO promotions (_id, "cabinId", "discountPercent", "startDate", "endDate", "isActive") VALUES
+('40000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002', 10.00, '2026-07-01', '2026-07-31', TRUE),
+('40000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000005', 15.00, '2026-08-01', '2026-08-20', TRUE),
+('40000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000008', 8.50, '2026-09-01', '2026-09-30', TRUE),
+('40000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000011', 12.00, '2026-10-01', '2026-10-15', TRUE),
+('40000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000013', 7.00, '2026-06-01', '2026-06-30', FALSE),
+('40000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000015', 10.00, '2026-11-01', '2026-11-30', TRUE),
+('40000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000018', 9.00, '2026-12-01', '2026-12-20', TRUE),
+('40000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000020', 12.00, '2026-12-21', '2027-01-05', TRUE);
+
+INSERT INTO images (_id, "cabinId", "imageUrl", "name", "isCover") VALUES
+('50000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'Pine Ridge Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000001', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'Pine Ridge forest view', FALSE),
+('50000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000002', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', 'Lakeview Lodge cover', TRUE),
+('50000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000002', 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'Lakeview deck', FALSE),
+('50000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000003', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'Forest Retreat cover', TRUE),
+('50000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000003', 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'Forest Retreat living room', FALSE),
+('50000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000004', 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'Hilltop Family Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000004', 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80', 'Hilltop family dining', FALSE),
+('50000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000005', 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'Riverstone Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000010', '20000000-0000-4000-8000-000000000005', 'https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&w=1200&q=80', 'Riverstone seating area', FALSE),
+('50000000-0000-4000-8000-000000000011', '20000000-0000-4000-8000-000000000006', 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80', 'Sunset Chalet cover', TRUE),
+('50000000-0000-4000-8000-000000000012', '20000000-0000-4000-8000-000000000006', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'Sunset Chalet exterior', FALSE),
+('50000000-0000-4000-8000-000000000013', '20000000-0000-4000-8000-000000000007', 'https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&w=1200&q=80', 'Meadow Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000014', '20000000-0000-4000-8000-000000000007', 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80', 'Meadow Cabin bedroom', FALSE),
+('50000000-0000-4000-8000-000000000015', '20000000-0000-4000-8000-000000000008', 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80', 'Grand Vista Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000016', '20000000-0000-4000-8000-000000000008', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80', 'Grand Vista lounge', FALSE),
+('50000000-0000-4000-8000-000000000017', '20000000-0000-4000-8000-000000000009', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'Cedar Grove House cover', TRUE),
+('50000000-0000-4000-8000-000000000018', '20000000-0000-4000-8000-000000000009', 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80', 'Cedar Grove garden', FALSE),
+('50000000-0000-4000-8000-000000000019', '20000000-0000-4000-8000-000000000010', 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80', 'Moonlight Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000020', '20000000-0000-4000-8000-000000000010', 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'Moonlight terrace', FALSE),
+('50000000-0000-4000-8000-000000000021', '20000000-0000-4000-8000-000000000011', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80', 'Aspen Creek Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000022', '20000000-0000-4000-8000-000000000011', 'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1200&q=80', 'Aspen Creek porch', FALSE),
+('50000000-0000-4000-8000-000000000023', '20000000-0000-4000-8000-000000000012', 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80', 'Orchid Valley Lodge cover', TRUE),
+('50000000-0000-4000-8000-000000000024', '20000000-0000-4000-8000-000000000012', 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80', 'Orchid Valley bedroom', FALSE),
+('50000000-0000-4000-8000-000000000025', '20000000-0000-4000-8000-000000000013', 'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1200&q=80', 'Cloudline Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000026', '20000000-0000-4000-8000-000000000013', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'Cloudline mountain view', FALSE),
+('50000000-0000-4000-8000-000000000027', '20000000-0000-4000-8000-000000000014', 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80', 'Bamboo Lake Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000028', '20000000-0000-4000-8000-000000000014', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', 'Bamboo Lake path', FALSE),
+('50000000-0000-4000-8000-000000000029', '20000000-0000-4000-8000-000000000015', 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=1200&q=80', 'Maple Garden Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000030', '20000000-0000-4000-8000-000000000015', 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'Maple Garden grill', FALSE),
+('50000000-0000-4000-8000-000000000031', '20000000-0000-4000-8000-000000000016', 'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=80', 'Harbor Wood Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000032', '20000000-0000-4000-8000-000000000016', 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'Harbor Wood porch', FALSE),
+('50000000-0000-4000-8000-000000000033', '20000000-0000-4000-8000-000000000017', 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80', 'Silver Fern Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000034', '20000000-0000-4000-8000-000000000017', 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80', 'Silver Fern workspace', FALSE),
+('50000000-0000-4000-8000-000000000035', '20000000-0000-4000-8000-000000000018', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'Golden Summit Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000036', '20000000-0000-4000-8000-000000000018', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80', 'Golden Summit lounge', FALSE),
+('50000000-0000-4000-8000-000000000037', '20000000-0000-4000-8000-000000000019', 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80', 'Stone Path Cabin cover', TRUE),
+('50000000-0000-4000-8000-000000000038', '20000000-0000-4000-8000-000000000019', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'Stone Path garden', FALSE),
+('50000000-0000-4000-8000-000000000039', '20000000-0000-4000-8000-000000000020', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', 'Evergreen Grand Lodge cover', TRUE),
+('50000000-0000-4000-8000-000000000040', '20000000-0000-4000-8000-000000000020', 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80', 'Evergreen Grand dining', FALSE);
+
+WITH booking_seed (_id, "userId", "cabinId", "startDate", "endDate", "numGuests", "cabinPrice", "extrasPrice", status, "hasBreakfast", "isPaid", observations) AS (
+    VALUES
+    ('60000000-0000-4000-8000-000000000001'::uuid, '10000000-0000-4000-8000-000000000005'::uuid, '20000000-0000-4000-8000-000000000001'::uuid, DATE '2026-01-05', DATE '2026-01-08', 2, 540.00, 36.00, 'checked-out', TRUE, TRUE, 'Anniversary stay with late check-in.'),
+    ('60000000-0000-4000-8000-000000000002'::uuid, '10000000-0000-4000-8000-000000000006'::uuid, '20000000-0000-4000-8000-000000000002'::uuid, DATE '2026-01-10', DATE '2026-01-14', 4, 936.00, 0.00, 'checked-out', FALSE, TRUE, 'Family trip near the lake.'),
+    ('60000000-0000-4000-8000-000000000003'::uuid, '10000000-0000-4000-8000-000000000007'::uuid, '20000000-0000-4000-8000-000000000003'::uuid, DATE '2026-01-18', DATE '2026-01-21', 3, 660.00, 42.00, 'checked-out', TRUE, TRUE, 'Requested quiet room and extra blankets.'),
+    ('60000000-0000-4000-8000-000000000004'::uuid, '10000000-0000-4000-8000-000000000008'::uuid, '20000000-0000-4000-8000-000000000004'::uuid, DATE '2026-01-22', DATE '2026-01-27', 6, 1615.00, 80.00, 'checked-out', TRUE, TRUE, 'Family reunion weekend.'),
+    ('60000000-0000-4000-8000-000000000005'::uuid, '10000000-0000-4000-8000-000000000009'::uuid, '20000000-0000-4000-8000-000000000005'::uuid, DATE '2026-02-01', DATE '2026-02-03', 2, 340.00, 0.00, 'checked-out', FALSE, TRUE, 'Short riverside stay.'),
+    ('60000000-0000-4000-8000-000000000006'::uuid, '10000000-0000-4000-8000-000000000010'::uuid, '20000000-0000-4000-8000-000000000006'::uuid, DATE '2026-02-05', DATE '2026-02-09', 5, 1240.00, 72.00, 'checked-out', TRUE, TRUE, 'Group wanted sunset balcony.'),
+    ('60000000-0000-4000-8000-000000000007'::uuid, '10000000-0000-4000-8000-000000000011'::uuid, '20000000-0000-4000-8000-000000000007'::uuid, DATE '2026-02-12', DATE '2026-02-15', 4, 720.00, 39.00, 'checked-out', TRUE, TRUE, 'Vegetarian breakfast preferred.'),
+    ('60000000-0000-4000-8000-000000000008'::uuid, '10000000-0000-4000-8000-000000000012'::uuid, '20000000-0000-4000-8000-000000000008'::uuid, DATE '2026-02-20', DATE '2026-02-24', 8, 1824.00, 0.00, 'checked-out', FALSE, TRUE, 'Large group booking.'),
+    ('60000000-0000-4000-8000-000000000009'::uuid, '10000000-0000-4000-8000-000000000013'::uuid, '20000000-0000-4000-8000-000000000009'::uuid, DATE '2026-03-02', DATE '2026-03-05', 3, 579.60, 42.00, 'checked-out', TRUE, TRUE, 'Needed parking close to cabin.'),
+    ('60000000-0000-4000-8000-000000000010'::uuid, '10000000-0000-4000-8000-000000000014'::uuid, '20000000-0000-4000-8000-000000000010'::uuid, DATE '2026-03-08', DATE '2026-03-10', 2, 380.00, 24.00, 'checked-out', TRUE, TRUE, 'Romantic weekend.'),
+    ('60000000-0000-4000-8000-000000000011'::uuid, '10000000-0000-4000-8000-000000000005'::uuid, '20000000-0000-4000-8000-000000000011'::uuid, DATE '2026-03-12', DATE '2026-03-16', 5, 1038.40, 64.00, 'checked-out', TRUE, TRUE, 'Friends trip with BBQ request.'),
+    ('60000000-0000-4000-8000-000000000012'::uuid, '10000000-0000-4000-8000-000000000006'::uuid, '20000000-0000-4000-8000-000000000012'::uuid, DATE '2026-03-20', DATE '2026-03-23', 6, 1080.00, 51.00, 'checked-out', TRUE, TRUE, 'Family needed two adjacent bedrooms.'),
+    ('60000000-0000-4000-8000-000000000013'::uuid, '10000000-0000-4000-8000-000000000007'::uuid, '20000000-0000-4000-8000-000000000013'::uuid, DATE '2026-04-01', DATE '2026-04-04', 4, 767.25, 0.00, 'checked-out', FALSE, TRUE, 'Mountain photography trip.'),
+    ('60000000-0000-4000-8000-000000000014'::uuid, '10000000-0000-4000-8000-000000000008'::uuid, '20000000-0000-4000-8000-000000000014'::uuid, DATE '2026-04-06', DATE '2026-04-09', 3, 690.00, 39.00, 'checked-out', TRUE, TRUE, 'Small family lake holiday.'),
+    ('60000000-0000-4000-8000-000000000015'::uuid, '10000000-0000-4000-8000-000000000009'::uuid, '20000000-0000-4000-8000-000000000015'::uuid, DATE '2026-04-10', DATE '2026-04-13', 4, 675.00, 45.00, 'checked-out', TRUE, TRUE, 'Requested early breakfast.'),
+    ('60000000-0000-4000-8000-000000000016'::uuid, '10000000-0000-4000-8000-000000000010'::uuid, '20000000-0000-4000-8000-000000000016'::uuid, DATE '2026-04-15', DATE '2026-04-18', 5, 960.00, 0.00, 'checked-out', FALSE, TRUE, 'Coastal cabin stay.'),
+    ('60000000-0000-4000-8000-000000000017'::uuid, '10000000-0000-4000-8000-000000000011'::uuid, '20000000-0000-4000-8000-000000000017'::uuid, DATE '2026-04-22', DATE '2026-04-24', 2, 332.50, 22.00, 'checked-out', TRUE, TRUE, 'Remote work retreat.'),
+    ('60000000-0000-4000-8000-000000000018'::uuid, '10000000-0000-4000-8000-000000000012'::uuid, '20000000-0000-4000-8000-000000000018'::uuid, DATE '2026-04-26', DATE '2026-05-01', 8, 2392.00, 110.00, 'checked-out', TRUE, TRUE, 'Group wanted hot tub access.'),
+    ('60000000-0000-4000-8000-000000000019'::uuid, '10000000-0000-4000-8000-000000000013'::uuid, '20000000-0000-4000-8000-000000000019'::uuid, DATE '2026-05-03', DATE '2026-05-06', 6, 1110.00, 51.00, 'checked-out', TRUE, TRUE, 'Garden view was requested.'),
+    ('60000000-0000-4000-8000-000000000020'::uuid, '10000000-0000-4000-8000-000000000014'::uuid, '20000000-0000-4000-8000-000000000020'::uuid, DATE '2026-05-08', DATE '2026-05-12', 10, 2288.00, 0.00, 'checked-out', FALSE, TRUE, 'Corporate retreat.'),
+    ('60000000-0000-4000-8000-000000000021'::uuid, '10000000-0000-4000-8000-000000000005'::uuid, '20000000-0000-4000-8000-000000000003'::uuid, DATE '2026-05-13', DATE '2026-05-16', 2, 660.00, 42.00, 'checked-out', TRUE, TRUE, 'Quiet forest stay.'),
+    ('60000000-0000-4000-8000-000000000022'::uuid, '10000000-0000-4000-8000-000000000006'::uuid, '20000000-0000-4000-8000-000000000006'::uuid, DATE '2026-05-16', DATE '2026-05-19', 5, 930.00, 0.00, 'checked-out', FALSE, TRUE, 'Sunset view requested.'),
+    ('60000000-0000-4000-8000-000000000023'::uuid, '10000000-0000-4000-8000-000000000007'::uuid, '20000000-0000-4000-8000-000000000009'::uuid, DATE '2026-05-20', DATE '2026-05-22', 3, 386.40, 28.00, 'checked-out', TRUE, TRUE, 'Garden breakfast booking.'),
+    ('60000000-0000-4000-8000-000000000024'::uuid, '10000000-0000-4000-8000-000000000008'::uuid, '20000000-0000-4000-8000-000000000012'::uuid, DATE '2026-05-23', DATE '2026-05-26', 4, 1080.00, 51.00, 'checked-out', TRUE, TRUE, 'Orchid garden weekend.'),
+    ('60000000-0000-4000-8000-000000000025'::uuid, '10000000-0000-4000-8000-000000000009'::uuid, '20000000-0000-4000-8000-000000000015'::uuid, DATE '2026-05-28', DATE '2026-05-31', 4, 675.00, 0.00, 'checked-out', FALSE, TRUE, 'Maple garden stay.'),
+    ('60000000-0000-4000-8000-000000000026'::uuid, '10000000-0000-4000-8000-000000000010'::uuid, '20000000-0000-4000-8000-000000000001'::uuid, DATE '2026-07-01', DATE '2026-07-04', 2, 540.00, 36.00, 'confirmed', TRUE, FALSE, 'Future couple booking.'),
+    ('60000000-0000-4000-8000-000000000027'::uuid, '10000000-0000-4000-8000-000000000011'::uuid, '20000000-0000-4000-8000-000000000002'::uuid, DATE '2026-07-10', DATE '2026-07-15', 4, 1170.00, 0.00, 'pending', FALSE, FALSE, 'Payment pending.'),
+    ('60000000-0000-4000-8000-000000000028'::uuid, '10000000-0000-4000-8000-000000000012'::uuid, '20000000-0000-4000-8000-000000000003'::uuid, DATE '2026-07-20', DATE '2026-07-23', 3, 660.00, 42.00, 'unconfirmed', TRUE, FALSE, 'Waiting for guest confirmation.'),
+    ('60000000-0000-4000-8000-000000000029'::uuid, '10000000-0000-4000-8000-000000000013'::uuid, '20000000-0000-4000-8000-000000000004'::uuid, DATE '2026-08-01', DATE '2026-08-04', 5, 969.00, 0.00, 'cancelled', FALSE, FALSE, 'Cancelled before payment.'),
+    ('60000000-0000-4000-8000-000000000030'::uuid, '10000000-0000-4000-8000-000000000014'::uuid, '20000000-0000-4000-8000-000000000005'::uuid, DATE '2026-06-16', DATE '2026-06-20', 2, 680.00, 48.00, 'checked-in', TRUE, TRUE, 'Currently staying.'),
+    ('60000000-0000-4000-8000-000000000031'::uuid, '10000000-0000-4000-8000-000000000005'::uuid, '20000000-0000-4000-8000-000000000006'::uuid, DATE '2026-08-05', DATE '2026-08-09', 5, 1240.00, 0.00, 'confirmed', FALSE, TRUE, 'Confirmed group stay.'),
+    ('60000000-0000-4000-8000-000000000032'::uuid, '10000000-0000-4000-8000-000000000006'::uuid, '20000000-0000-4000-8000-000000000007'::uuid, DATE '2026-08-12', DATE '2026-08-15', 4, 720.00, 39.00, 'pending', TRUE, FALSE, 'Awaiting transfer receipt.'),
+    ('60000000-0000-4000-8000-000000000033'::uuid, '10000000-0000-4000-8000-000000000007'::uuid, '20000000-0000-4000-8000-000000000008'::uuid, DATE '2026-08-20', DATE '2026-08-25', 8, 2280.00, 0.00, 'confirmed', FALSE, TRUE, 'Large family trip.'),
+    ('60000000-0000-4000-8000-000000000034'::uuid, '10000000-0000-4000-8000-000000000008'::uuid, '20000000-0000-4000-8000-000000000009'::uuid, DATE '2026-09-02', DATE '2026-09-05', 3, 579.60, 42.00, 'unconfirmed', TRUE, FALSE, 'Guest asked about late checkout.'),
+    ('60000000-0000-4000-8000-000000000035'::uuid, '10000000-0000-4000-8000-000000000009'::uuid, '20000000-0000-4000-8000-000000000010'::uuid, DATE '2026-09-07', DATE '2026-09-09', 2, 380.00, 0.00, 'cancelled', FALSE, FALSE, 'Cancelled due to schedule change.'),
+    ('60000000-0000-4000-8000-000000000036'::uuid, '10000000-0000-4000-8000-000000000010'::uuid, '20000000-0000-4000-8000-000000000011'::uuid, DATE '2026-09-11', DATE '2026-09-14', 5, 778.80, 48.00, 'confirmed', TRUE, TRUE, 'Requested BBQ tools.'),
+    ('60000000-0000-4000-8000-000000000037'::uuid, '10000000-0000-4000-8000-000000000011'::uuid, '20000000-0000-4000-8000-000000000012'::uuid, DATE '2026-09-18', DATE '2026-09-21', 6, 1080.00, 0.00, 'pending', FALSE, FALSE, 'Needs invoice before payment.'),
+    ('60000000-0000-4000-8000-000000000038'::uuid, '10000000-0000-4000-8000-000000000012'::uuid, '20000000-0000-4000-8000-000000000013'::uuid, DATE '2026-09-25', DATE '2026-09-28', 4, 767.25, 45.00, 'confirmed', TRUE, TRUE, 'Cloudline balcony requested.'),
+    ('60000000-0000-4000-8000-000000000039'::uuid, '10000000-0000-4000-8000-000000000013'::uuid, '20000000-0000-4000-8000-000000000014'::uuid, DATE '2026-10-02', DATE '2026-10-05', 3, 690.00, 39.00, 'unconfirmed', TRUE, FALSE, 'Asked for kayak rental details.'),
+    ('60000000-0000-4000-8000-000000000040'::uuid, '10000000-0000-4000-8000-000000000014'::uuid, '20000000-0000-4000-8000-000000000015'::uuid, DATE '2026-10-08', DATE '2026-10-11', 4, 675.00, 0.00, 'confirmed', FALSE, TRUE, 'Confirmed autumn trip.'),
+    ('60000000-0000-4000-8000-000000000041'::uuid, '10000000-0000-4000-8000-000000000005'::uuid, '20000000-0000-4000-8000-000000000016'::uuid, DATE '2026-10-15', DATE '2026-10-18', 5, 960.00, 54.00, 'pending', TRUE, FALSE, 'Breakfast for all guests.'),
+    ('60000000-0000-4000-8000-000000000042'::uuid, '10000000-0000-4000-8000-000000000006'::uuid, '20000000-0000-4000-8000-000000000017'::uuid, DATE '2026-10-20', DATE '2026-10-22', 2, 332.50, 0.00, 'cancelled', FALSE, FALSE, 'Cancelled by customer.'),
+    ('60000000-0000-4000-8000-000000000043'::uuid, '10000000-0000-4000-8000-000000000007'::uuid, '20000000-0000-4000-8000-000000000018'::uuid, DATE '2026-11-01', DATE '2026-11-06', 8, 2392.00, 110.00, 'confirmed', TRUE, TRUE, 'Hot tub access requested.'),
+    ('60000000-0000-4000-8000-000000000044'::uuid, '10000000-0000-4000-8000-000000000008'::uuid, '20000000-0000-4000-8000-000000000019'::uuid, DATE '2026-11-10', DATE '2026-11-14', 6, 1480.00, 68.00, 'pending', TRUE, FALSE, 'Waiting on group confirmation.'),
+    ('60000000-0000-4000-8000-000000000045'::uuid, '10000000-0000-4000-8000-000000000009'::uuid, '20000000-0000-4000-8000-000000000020'::uuid, DATE '2026-11-20', DATE '2026-11-25', 10, 2860.00, 0.00, 'confirmed', FALSE, TRUE, 'Large group confirmed.'),
+    ('60000000-0000-4000-8000-000000000046'::uuid, '10000000-0000-4000-8000-000000000010'::uuid, '20000000-0000-4000-8000-000000000002'::uuid, DATE '2026-12-01', DATE '2026-12-05', 4, 936.00, 60.00, 'unconfirmed', TRUE, FALSE, 'Asked for child-friendly amenities.'),
+    ('60000000-0000-4000-8000-000000000047'::uuid, '10000000-0000-4000-8000-000000000011'::uuid, '20000000-0000-4000-8000-000000000004'::uuid, DATE '2026-12-10', DATE '2026-12-14', 6, 1292.00, 0.00, 'confirmed', FALSE, TRUE, 'Winter family booking.'),
+    ('60000000-0000-4000-8000-000000000048'::uuid, '10000000-0000-4000-8000-000000000012'::uuid, '20000000-0000-4000-8000-000000000008'::uuid, DATE '2026-12-24', DATE '2026-12-30', 8, 2736.00, 120.00, 'confirmed', TRUE, TRUE, 'Holiday group booking.'),
+    ('60000000-0000-4000-8000-000000000049'::uuid, '10000000-0000-4000-8000-000000000013'::uuid, '20000000-0000-4000-8000-000000000018'::uuid, DATE '2027-01-05', DATE '2027-01-10', 8, 2392.00, 0.00, 'pending', FALSE, FALSE, 'New year group inquiry.'),
+    ('60000000-0000-4000-8000-000000000050'::uuid, '10000000-0000-4000-8000-000000000014'::uuid, '20000000-0000-4000-8000-000000000020'::uuid, DATE '2027-01-15', DATE '2027-01-20', 10, 2860.00, 125.00, 'unconfirmed', TRUE, FALSE, 'Waiting for deposit.')
+)
+INSERT INTO bookings (_id, "userId", "cabinId", "startDate", "endDate", "numNights", "numGuests", "cabinPrice", "extrasPrice", "totalPrice", status, "hasBreakfast", "isPaid", observations)
+SELECT
+    _id,
+    "userId",
+    "cabinId",
+    "startDate",
+    "endDate",
+    ("endDate" - "startDate")::int,
+    "numGuests",
+    "cabinPrice",
+    "extrasPrice",
+    "cabinPrice" + "extrasPrice",
+    status,
+    "hasBreakfast",
+    "isPaid",
+    observations
+FROM booking_seed;
+
+INSERT INTO rates (_id, "userId", "cabinId", "bookingId", rating, comment) VALUES
+('70000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 5, 'Cabin was clean and quiet.'),
+('70000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000002', 4, 'Great view and friendly host.'),
+('70000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000003', '60000000-0000-4000-8000-000000000003', 3, 'Good value for a short forest trip.'),
+('70000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000004', '60000000-0000-4000-8000-000000000004', 5, 'Spacious cabin and excellent support.'),
+('70000000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000005', '60000000-0000-4000-8000-000000000005', 2, 'Nice location but check-in could be smoother.'),
+('70000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000010', '20000000-0000-4000-8000-000000000006', '60000000-0000-4000-8000-000000000006', 4, 'Sunset balcony was beautiful.'),
+('70000000-0000-4000-8000-000000000007', '10000000-0000-4000-8000-000000000011', '20000000-0000-4000-8000-000000000007', '60000000-0000-4000-8000-000000000007', 5, 'Perfect meadow view and good breakfast.'),
+('70000000-0000-4000-8000-000000000008', '10000000-0000-4000-8000-000000000012', '20000000-0000-4000-8000-000000000008', '60000000-0000-4000-8000-000000000008', 4, 'Great for a large family trip.'),
+('70000000-0000-4000-8000-000000000009', '10000000-0000-4000-8000-000000000013', '20000000-0000-4000-8000-000000000009', '60000000-0000-4000-8000-000000000009', 1, 'Room was acceptable but service was slow.'),
+('70000000-0000-4000-8000-000000000010', '10000000-0000-4000-8000-000000000014', '20000000-0000-4000-8000-000000000010', '60000000-0000-4000-8000-000000000010', 5, 'Cozy and romantic, exactly as expected.'),
+('70000000-0000-4000-8000-000000000011', '10000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000011', '60000000-0000-4000-8000-000000000011', 4, 'Good BBQ space and comfortable beds.'),
+('70000000-0000-4000-8000-000000000012', '10000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000012', '60000000-0000-4000-8000-000000000012', 5, 'Lovely orchid garden and clean rooms.'),
+('70000000-0000-4000-8000-000000000013', '10000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000013', '60000000-0000-4000-8000-000000000013', 3, 'Nice view, but weather was difficult.'),
+('70000000-0000-4000-8000-000000000014', '10000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000014', '60000000-0000-4000-8000-000000000014', 4, 'Lake access was convenient.'),
+('70000000-0000-4000-8000-000000000015', '10000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000015', '60000000-0000-4000-8000-000000000015', 5, 'Beautiful garden and helpful staff.'),
+('70000000-0000-4000-8000-000000000016', '10000000-0000-4000-8000-000000000010', '20000000-0000-4000-8000-000000000016', '60000000-0000-4000-8000-000000000016', 4, 'Calm coastal cabin with a warm interior.'),
+('70000000-0000-4000-8000-000000000017', '10000000-0000-4000-8000-000000000011', '20000000-0000-4000-8000-000000000017', '60000000-0000-4000-8000-000000000017', 3, 'Good for working remotely, WiFi was stable.'),
+('70000000-0000-4000-8000-000000000018', '10000000-0000-4000-8000-000000000012', '20000000-0000-4000-8000-000000000018', '60000000-0000-4000-8000-000000000018', 5, 'Hot tub and mountain view were excellent.'),
+('70000000-0000-4000-8000-000000000019', '10000000-0000-4000-8000-000000000013', '20000000-0000-4000-8000-000000000019', '60000000-0000-4000-8000-000000000019', 4, 'Private and peaceful garden stay.'),
+('70000000-0000-4000-8000-000000000020', '10000000-0000-4000-8000-000000000014', '20000000-0000-4000-8000-000000000020', '60000000-0000-4000-8000-000000000020', 5, 'Excellent lodge for a corporate retreat.'),
+('70000000-0000-4000-8000-000000000021', '10000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000003', '60000000-0000-4000-8000-000000000021', 4, 'Quiet forest stay with clean facilities.'),
+('70000000-0000-4000-8000-000000000022', '10000000-0000-4000-8000-000000000006', '20000000-0000-4000-8000-000000000006', '60000000-0000-4000-8000-000000000022', 5, 'Sunset view was memorable.'),
+('70000000-0000-4000-8000-000000000023', '10000000-0000-4000-8000-000000000007', '20000000-0000-4000-8000-000000000009', '60000000-0000-4000-8000-000000000023', 2, 'Good cabin, but breakfast arrived late.'),
+('70000000-0000-4000-8000-000000000024', '10000000-0000-4000-8000-000000000008', '20000000-0000-4000-8000-000000000012', '60000000-0000-4000-8000-000000000024', 5, 'Very clean rooms and lovely garden.'),
+('70000000-0000-4000-8000-000000000025', '10000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000015', '60000000-0000-4000-8000-000000000025', 4, 'Good value for family trip.');
+
+INSERT INTO otps (_id, email, otp, "expiresAt", "userId") VALUES
+('80000000-0000-4000-8000-000000000001', 'alice.nguyen@sdp1.test', '123456', NOW() + INTERVAL '10 minutes', '10000000-0000-4000-8000-000000000005'),
+('80000000-0000-4000-8000-000000000002', 'bao.tran@sdp1.test', '654321', NOW() + INTERVAL '5 minutes', '10000000-0000-4000-8000-000000000006'),
+('80000000-0000-4000-8000-000000000003', 'chi.pham@sdp1.test', '111222', NOW() - INTERVAL '5 minutes', '10000000-0000-4000-8000-000000000007'),
+('80000000-0000-4000-8000-000000000004', 'david.le@sdp1.test', '333444', NOW() - INTERVAL '30 minutes', '10000000-0000-4000-8000-000000000008'),
+('80000000-0000-4000-8000-000000000005', 'eve.hoang@sdp1.test', '555666', NOW() + INTERVAL '15 minutes', '10000000-0000-4000-8000-000000000009');
+
+INSERT INTO settings (_id, "miniBookingLength", "maxBookingLength", "maxNumberOfGuests", "breakfastPrice") VALUES
+('90000000-0000-4000-8000-000000000001', 1, 30, 10, 15.00);
+
+SELECT * FROM users;
+
+SELECT * FROM cabins ORDER BY "name";
+
+SELECT
+    b._id AS "bookingId",
+    u."fullName",
+    u.email,
+    c."name" AS "cabinName",
+    b."startDate",
+    b."endDate",
+    b."numNights",
+    b."numGuests",
+    b.status,
+    b."totalPrice"
+FROM bookings AS b
+JOIN users AS u ON b."userId" = u._id
+JOIN cabins AS c ON b."cabinId" = c._id
+ORDER BY b."startDate";
+
+SELECT
+    b.*,
+    c."name" AS "cabinName",
+    c.image AS "cabinImage",
+    c."maxCapacity" AS "cabinMaxCapacity",
+    c."regularPrice" AS "cabinRegularPrice",
+    c.discount AS "cabinDiscount"
+FROM bookings AS b
+JOIN cabins AS c ON b."cabinId" = c._id
+WHERE b."userId" = '10000000-0000-4000-8000-000000000005'
+ORDER BY b."startDate" DESC;
+
+SELECT
+    c._id AS "cabinId",
+    c."name",
+    c."maxCapacity",
+    c."regularPrice",
+    ROUND(AVG(r.rating)::numeric, 2) AS "averageRating",
+    COUNT(r._id) AS "reviewCount"
+FROM cabins AS c
+LEFT JOIN rates AS r ON r."cabinId" = c._id
+GROUP BY c._id, c."name", c."maxCapacity", c."regularPrice"
+ORDER BY "averageRating" DESC NULLS LAST, c."name";
+
+SELECT
+    r.*,
+    u."fullName" AS "userFullName"
+FROM rates AS r
+LEFT JOIN users AS u ON r."userId" = u._id
+WHERE r."cabinId" = '20000000-0000-4000-8000-000000000001'
+ORDER BY r._id DESC;
+
+SELECT *
+FROM otps
+WHERE email = 'alice.nguyen@sdp1.test'
+ORDER BY "expiresAt" DESC
+LIMIT 1;
+
+SELECT c.*
+FROM cabins AS c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM bookings AS b
+    WHERE b."cabinId" = c._id
+      AND b.status IN ('unconfirmed', 'confirmed', 'checked-in', 'pending')
+      AND b."startDate" < DATE '2026-08-05'
+      AND b."endDate" > DATE '2026-08-01'
+)
+ORDER BY c."name";
+
+UPDATE users
+SET password = '$2b$10$mGVZ12iJRjxdbVxx3homS.ubYRAcBp9wIIxrGZtpgSMn/CBr.ZC0m',
+    "updatedAt" = NOW()
+WHERE email = 'alice.nguyen@sdp1.test';
+
+UPDATE settings
+SET "miniBookingLength" = 1,
+    "maxBookingLength" = 30,
+    "maxNumberOfGuests" = 10,
+    "breakfastPrice" = 15.00,
+    "updatedAt" = NOW()
+WHERE _id = '90000000-0000-4000-8000-000000000001';
+
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM cabins;
+SELECT COUNT(*) FROM images;
+SELECT COUNT(*) FROM booking_policies;
+SELECT COUNT(*) FROM promotions;
+SELECT COUNT(*) FROM bookings;
+SELECT COUNT(*) FROM rates;
+SELECT COUNT(*) FROM otps;
+SELECT COUNT(*) FROM settings;
+
+COMMIT;
