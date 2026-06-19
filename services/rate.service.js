@@ -1,13 +1,19 @@
 import bookingDao from "../dao/booking.dao.js";
 import rateDao from "../dao/rate.dao.js";
+import { Booking } from "../models/booking.model.js";
+import { Rate } from "../models/rate.model.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
 
-export const findRatesByCabinId = (cabinId) => {
-  return rateDao.findByCabinId(cabinId);
+const toRateView = (row) => Rate.fromRow(row)?.toJSON();
+
+export const findRatesByCabinId = async (cabinId) => {
+  const rates = await rateDao.findByCabinId(cabinId);
+  return rates.map(toRateView);
 };
 
-export const findRateByBookingId = (bookingId) => {
-  return rateDao.findByBookingId(bookingId);
+export const findRateByBookingId = async (bookingId) => {
+  const rate = await rateDao.findByBookingId(bookingId);
+  return toRateView(rate);
 };
 
 export const createRateForBooking = async (currentUser, { bookingId, rating, comment }) => {
@@ -49,7 +55,8 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
     throw error;
   }
 
-  if (booking.status !== "checked-out") {
+  const bookingEntity = Booking.fromRow(booking);
+  if (!bookingEntity.isCheckedOut()) {
     const error = new Error("Only checked-out bookings can be rated");
     error.status = 400;
     throw error;
@@ -62,11 +69,13 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
     throw error;
   }
 
-  return rateDao.create({
+  const createdRate = await rateDao.create({
     userId: getUserId(currentUser),
     cabinId: booking.cabinId,
     bookingId,
     rating: numericRating,
     comment: comment?.trim() || null,
   });
+
+  return toRateView(createdRate);
 };

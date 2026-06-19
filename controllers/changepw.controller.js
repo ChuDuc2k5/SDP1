@@ -1,4 +1,4 @@
-import { changePasswordByEmail } from "../services/user.service.js";
+import { changePasswordByEmail } from "../services/changepw.service.js";
 
 export const renderChangePassword = (req, res) => {
   res.render("vwUser/change-password");

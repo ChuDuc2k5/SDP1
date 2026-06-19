@@ -1,5 +1,8 @@
 import { findByEmail, updateByEmail, updatePassword } from "../dao/user.dao.js";
+import { User } from "../models/user.model.js";
 import { comparePassword, hashPassword } from "../utils/hash.js";
+
+const toSafeUser = (row) => User.fromRow(row)?.toSafeJSON();
 
 export const getProfileByEmail = async (email) => {
   const user = await findByEmail(email);
@@ -7,13 +10,13 @@ export const getProfileByEmail = async (email) => {
     throw new Error("User not found in DB");
   }
 
-  return user;
+  return toSafeUser(user);
 };
 
 export const updateProfileByEmail = async (email, data) => {
   const currentUser = await getProfileByEmail(email);
 
-  return updateByEmail(email, {
+  const updated = await updateByEmail(email, {
     fullName: data.fullName?.trim() || currentUser.fullName,
     phone: data.phone || currentUser.phone,
     nationalId: data.nationalId || currentUser.nationalId,
@@ -22,6 +25,8 @@ export const updateProfileByEmail = async (email, data) => {
     address: data.address || currentUser.address,
     nationality: data.nationality || currentUser.nationality,
   });
+
+  return toSafeUser(updated);
 };
 
 export const changePasswordByEmail = async ({
@@ -42,7 +47,11 @@ export const changePasswordByEmail = async ({
     throw new Error("Passwords do not match");
   }
 
-  const user = await getProfileByEmail(email);
+  const user = await findByEmail(email);
+  if (!user) {
+    throw new Error("User not found in DB");
+  }
+
   const isMatch = await comparePassword(currentPassword, user.password);
 
   if (!isMatch) {

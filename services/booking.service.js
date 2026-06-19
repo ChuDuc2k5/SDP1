@@ -1,11 +1,13 @@
 import bookingDao from "../dao/booking.dao.js";
-import bookingPolicyDao from "../dao/bookingPolicy.dao.js";
 import cabinDao from "../dao/cabin.dao.js";
-import settingDao from "../dao/setting.dao.js";
+import rateDao from "../dao/rate.dao.js";
 import { Booking } from "../models/booking.model.js";
 import { Cabin } from "../models/cabin.model.js";
-import { getUserId, ROLE } from "../utils/sessionUser.js";
+import { getUserId, ROLE, toViewUser } from "../utils/sessionUser.js";
+import { findBookingPolicyByCabinId } from "./bookingPolicy.service.js";
+import { getCurrentSettings } from "./setting.service.js";
 
+const BOOKINGS_PER_PAGE = 6;
 const CUSTOMER_EDIT_BLOCKED_STATUSES = ["checked-in", "checked-out"];
 const OWNER_ALLOWED_STATUSES = [
   "unconfirmed",
@@ -16,6 +18,14 @@ const OWNER_ALLOWED_STATUSES = [
   "pending",
 ];
 const BOOKING_VIEWS = ["upcoming", "history"];
+const STATUS_OPTIONS = [
+  "unconfirmed",
+  "pending",
+  "confirmed",
+  "checked-in",
+  "checked-out",
+  "cancelled",
+];
 
 const isUuid = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -30,7 +40,9 @@ const toDateOnly = (value) => {
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const date = new Date(`${value}T00:00:00`);
+  const date = new Date(
+    String(value).includes("T") ? value : `${value}T00:00:00`,
+  );
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
@@ -73,12 +85,12 @@ const assertAuthorized = (currentUser, booking) => {
 };
 
 const getBreakfastPrice = async (cabinId) => {
-  const policy = await bookingPolicyDao.findByCabinId(cabinId);
+  const policy = await findBookingPolicyByCabinId(cabinId);
   if (policy?.breakfastPrice != null) {
     return Number(policy.breakfastPrice);
   }
 
-  const settings = await settingDao.getCurrent();
+  const settings = await getCurrentSettings();
   return Number(settings?.breakfastPrice || 15);
 };
 
@@ -122,6 +134,163 @@ const buildPricing = async ({ cabin, startDate, endDate, numGuests, type, hasBre
   };
 };
 
+const parsePage = (value) => {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+};
+
+const buildBaseQuery = (query = {}) => {
+  return Object.entries(query).reduce((baseQuery, [key, value]) => {
+    if (key !== "page" && key !== "success") {
+      baseQuery[key] = value;
+    }
+    return baseQuery;
+  }, {});
+};
+
+const readQueryString = (query, key) => {
+  const value = query[key];
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const isValidDateInput = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime());
+};
+
+const buildOwnerFilters = (query = {}) => {
+  const q = readQueryString(query, "q");
+  const status = readQueryString(query, "status");
+  const dateFrom = readQueryString(query, "dateFrom");
+  const dateTo = readQueryString(query, "dateTo");
+
+  return {
+    q,
+    status: STATUS_OPTIONS.includes(status) ? status : "",
+    dateFrom: isValidDateInput(dateFrom) ? dateFrom : "",
+    dateTo: isValidDateInput(dateTo) ? dateTo : "",
+  };
+};
+
+const hasActiveFilters = (filters) =>
+  Boolean(filters.q || filters.status || filters.dateFrom || filters.dateTo);
+
+const buildPageUrl = (basePath, baseQuery, page) => {
+  const params = new URLSearchParams();
+
+  Object.entries(baseQuery).forEach(([key, value]) => {
+    if (key === "page" || value === undefined || value === null || value === "") {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== "") {
+          params.append(key, String(item));
+        }
+      });
+      return;
+    }
+
+    if (typeof value !== "object") {
+      params.set(key, String(value));
+    }
+  });
+
+  params.set("page", String(page));
+  return `${basePath}?${params.toString()}`;
+};
+
+const buildPaginationItems = (
+  currentPage,
+  totalPages,
+  basePath,
+  baseQuery = {},
+) => {
+  const items = [];
+
+  const addPage = (page) => {
+    items.push({
+      type: "page",
+      value: page,
+      isActive: page === currentPage,
+      url: buildPageUrl(basePath, baseQuery, page),
+    });
+  };
+
+  const addEllipsis = () => {
+    if (items[items.length - 1]?.type !== "ellipsis") {
+      items.push({ type: "ellipsis" });
+    }
+  };
+
+  if (totalPages <= 7) {
+    for (let page = 1; page <= totalPages; page += 1) {
+      addPage(page);
+    }
+    return items;
+  }
+
+  addPage(1);
+
+  let start = Math.max(2, currentPage - 2);
+  let end = Math.min(totalPages - 1, currentPage + 2);
+
+  if (currentPage <= 2) {
+    start = 2;
+    end = 3;
+  } else if (currentPage >= totalPages - 1) {
+    start = totalPages - 2;
+    end = totalPages - 1;
+  }
+
+  if (start > 2) {
+    addEllipsis();
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    addPage(page);
+  }
+
+  if (end < totalPages - 1) {
+    addEllipsis();
+  }
+
+  addPage(totalPages);
+  return items;
+};
+
+const buildPagination = ({ basePath, baseQuery, currentPage, totalPages }) => {
+  const hasPrevPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
+  const prevPage = hasPrevPage ? currentPage - 1 : 1;
+  const nextPage = hasNextPage ? currentPage + 1 : totalPages;
+
+  return {
+    currentPage,
+    totalPages,
+    hasPrevPage,
+    hasNextPage,
+    prevPage,
+    nextPage,
+    prevPageUrl: buildPageUrl(basePath, baseQuery, prevPage),
+    nextPageUrl: buildPageUrl(basePath, baseQuery, nextPage),
+    showPagination: totalPages > 1,
+    paginationItems: buildPaginationItems(
+      currentPage,
+      totalPages,
+      basePath,
+      baseQuery,
+    ),
+  };
+};
+
+const toBookingView = (row) => Booking.fromRow(row)?.toJSON();
+
 export const listBookingsForUser = async (currentUser) => {
   if (!currentUser) {
     throw new Error("Unauthorized");
@@ -129,7 +298,8 @@ export const listBookingsForUser = async (currentUser) => {
 
   if (currentUser.role === ROLE.CABIN_OWNER) {
     // TODO: When cabins has ownerId, restrict owners to bookings for their cabins.
-    return bookingDao.findAll();
+    const bookings = await bookingDao.findAll();
+    return bookings.map(toBookingView);
   }
 
   const userId = getUserId(currentUser);
@@ -137,7 +307,8 @@ export const listBookingsForUser = async (currentUser) => {
     throw new Error("userId is required");
   }
 
-  return bookingDao.findByUserId(userId);
+  const bookings = await bookingDao.findByUserId(userId);
+  return bookings.map(toBookingView);
 };
 
 export const listBookingsForUserPaginated = async (
@@ -155,28 +326,30 @@ export const listBookingsForUserPaginated = async (
 
   if (currentUser.role === ROLE.CABIN_OWNER) {
     // Current schema has no cabin owner relation, so keep the existing owner scope.
-    if (view === "history") {
-      return bookingDao.findHistoryForCabinOwnerPaginated(
-        userId,
-        filters,
-        limit,
-        offset,
-      );
-    }
+    const bookings =
+      view === "history"
+        ? await bookingDao.findHistoryForCabinOwnerPaginated(
+            userId,
+            filters,
+            limit,
+            offset,
+          )
+      : await bookingDao.findUpcomingForCabinOwnerPaginated(
+          userId,
+          filters,
+          limit,
+          offset,
+        );
 
-    return bookingDao.findUpcomingForCabinOwnerPaginated(
-      userId,
-      filters,
-      limit,
-      offset,
-    );
+    return bookings.map(toBookingView);
   }
 
-  if (view === "history") {
-    return bookingDao.findHistoryByUserIdPaginated(userId, limit, offset);
-  }
+  const bookings =
+    view === "history"
+      ? await bookingDao.findHistoryByUserIdPaginated(userId, limit, offset)
+      : await bookingDao.findUpcomingByUserIdPaginated(userId, limit, offset);
 
-  return bookingDao.findUpcomingByUserIdPaginated(userId, limit, offset);
+  return bookings.map(toBookingView);
 };
 
 export const countBookingsForUser = async (
@@ -211,6 +384,85 @@ export const countBookingsForUser = async (
 export const normalizeBookingView = (view) =>
   BOOKING_VIEWS.includes(view) ? view : "upcoming";
 
+export const getBookingPageData = async (currentUser, query = {}) => {
+  if (!currentUser) {
+    throw new Error("Unauthorized");
+  }
+
+  const requestedPage = parsePage(query.page);
+  const activeView = normalizeBookingView(query.view);
+  const isCabinOwner = currentUser.role === ROLE.CABIN_OWNER;
+  const ownerFilters = isCabinOwner ? buildOwnerFilters(query) : {};
+  const totalBookings = await countBookingsForUser(currentUser, {
+    view: activeView,
+    filters: ownerFilters,
+  });
+  const totalPages = Math.max(Math.ceil(totalBookings / BOOKINGS_PER_PAGE), 1);
+  const currentPage = Math.min(requestedPage, totalPages);
+  const offset = (currentPage - 1) * BOOKINGS_PER_PAGE;
+  const baseQuery = {
+    ...buildBaseQuery(query),
+    view: activeView,
+  };
+  const bookings = await listBookingsForUserPaginated(currentUser, {
+    view: activeView,
+    filters: ownerFilters,
+    limit: BOOKINGS_PER_PAGE,
+    offset,
+  });
+  const pagination = buildPagination({
+    basePath: "/booking",
+    baseQuery,
+    currentPage,
+    totalPages,
+  });
+  const filterActive = isCabinOwner && hasActiveFilters(ownerFilters);
+  const isHistoryView = activeView === "history";
+  const upcomingUrl = buildPageUrl(
+    "/booking",
+    { ...baseQuery, view: "upcoming" },
+    1,
+  );
+  const historyUrl = buildPageUrl(
+    "/booking",
+    { ...baseQuery, view: "history" },
+    1,
+  );
+
+  return {
+    bookings,
+    empty: bookings.length === 0,
+    isAdmin: isCabinOwner,
+    isCabinOwner,
+    isCustomer: currentUser.role === ROLE.CUSTOMER,
+    success: query.success === "1",
+    activeView,
+    isUpcomingView: !isHistoryView,
+    isHistoryView,
+    upcomingUrl,
+    historyUrl,
+    clearFiltersUrl: `/booking?view=${activeView}`,
+    ownerFilters,
+    filterActive,
+    statusOptions: STATUS_OPTIONS.map((status) => ({
+      value: status,
+      label: status,
+      selected: status === ownerFilters.status,
+    })),
+    emptyTitle: filterActive
+      ? "No bookings match your filters."
+      : isHistoryView
+        ? "No booking history found."
+        : "No upcoming bookings found.",
+    emptySubtitle: isHistoryView
+      ? "Cancelled, checked-out, and past bookings will appear here."
+      : "Upcoming bookings exclude cancelled, checked-out, and past stays.",
+    totalBookings,
+    pageLimit: BOOKINGS_PER_PAGE,
+    ...pagination,
+  };
+};
+
 export const getBookingDetail = async (currentUser, bookingId) => {
   if (!isUuid(bookingId)) {
     throw new Error("Booking not found or unauthorized");
@@ -218,7 +470,38 @@ export const getBookingDetail = async (currentUser, bookingId) => {
 
   const booking = await bookingDao.findById(bookingId);
   assertAuthorized(currentUser, booking);
-  return booking;
+  return toBookingView(booking);
+};
+
+export const getBookingDetailPageData = async (
+  currentUser,
+  bookingId,
+  query = {},
+) => {
+  const booking = await getBookingDetail(currentUser, bookingId);
+  const existingRate = await rateDao.findByBookingId(bookingId);
+  const canRate =
+    currentUser.role === ROLE.CUSTOMER &&
+    booking.userId === getUserId(currentUser) &&
+    booking.status === "checked-out" &&
+    !existingRate;
+
+  return {
+    booking,
+    existingRate,
+    canRate,
+    rateSuccess: query.rate === "success",
+    rateError: query.rate === "error",
+  };
+};
+
+export const getBookingEditPageData = async (currentUser, bookingId) => {
+  const booking = await getBookingDetail(currentUser, bookingId);
+
+  return {
+    booking,
+    currentUser: toViewUser(currentUser),
+  };
 };
 
 export const getCabinForNewBooking = async (currentUser, cabinId) => {
@@ -233,7 +516,16 @@ export const getCabinForNewBooking = async (currentUser, cabinId) => {
     throw new Error("Cabin not found");
   }
 
-  return cabin;
+  return Cabin.fromRow(cabin).toJSON();
+};
+
+export const getNewBookingPageData = async (currentUser, cabinId) => {
+  const cabin = await getCabinForNewBooking(currentUser, cabinId);
+
+  return {
+    cabin,
+    currentUser: toViewUser(currentUser),
+  };
 };
 
 export const createBooking = async (currentUser, payload) => {

@@ -36,6 +36,23 @@ export class User {
     return this.fullName || this.email || "User";
   }
 
+  toSafeJSON() {
+    return {
+      _id: this._id,
+      fullName: this.fullName,
+      email: this.email,
+      phone: this.phone,
+      nationalId: this.nationalId,
+      dateOfBirth: this.dateOfBirth,
+      gender: this.gender,
+      address: this.address,
+      nationality: this.nationality,
+      role: this.role,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
   toJSON() {
     return {
       _id: this._id,

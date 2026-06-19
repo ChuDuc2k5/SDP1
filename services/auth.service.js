@@ -4,11 +4,11 @@ import {
   updatePassword,
 } from "../dao/user.dao.js";
 import {
-  createOTP,
-  deleteOTPByEmail,
-  getOTPByEmail,
-} from "../dao/otp.dao.js";
-import { Otp } from "../models/otp.model.js";
+  createOtp,
+  deleteOtpByEmail,
+  getOtpByEmail,
+} from "./otp.service.js";
+import { User } from "../models/user.model.js";
 import { comparePassword, hashPassword } from "../utils/hash.js";
 import { generateToken } from "../utils/token.js";
 import { sendOtpEmail } from "../utils/mailer.js";
@@ -41,7 +41,7 @@ export const loginService = async ({ email, password }) => {
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) throw new Error("Wrong password");
 
-  const sessionUser = normalizeUser(user);
+  const sessionUser = normalizeUser(User.fromRow(user).toSafeJSON());
   const token = generateToken(sessionUser);
 
   return {
@@ -80,7 +80,10 @@ export const signupService = async (data) => {
     role: ROLE.CUSTOMER,
   });
 
-  return { message: "Signup success", user: normalizeUser(created) };
+  return {
+    message: "Signup success",
+    user: normalizeUser(User.fromRow(created).toSafeJSON()),
+  };
 };
 
 export const identityVerification = async ({ email }) => {
@@ -94,8 +97,8 @@ export const identityVerification = async ({ email }) => {
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
   console.log(`[forgot-password] OTP generated for ${cleanEmail}: ${otp}`);
 
-  await deleteOTPByEmail(cleanEmail);
-  await createOTP({
+  await deleteOtpByEmail(cleanEmail);
+  await createOtp({
     email: cleanEmail,
     otp,
     expiresAt,
@@ -127,13 +130,11 @@ export const verifyOTPService = async ({ email, otp }) => {
     throw new Error("OTP is required");
   }
 
-  const record = await getOTPByEmail(cleanEmail);
+  const otpRecord = await getOtpByEmail(cleanEmail);
 
-  if (!record) {
+  if (!otpRecord) {
     throw new Error("OTP not found");
   }
-
-  const otpRecord = new Otp(record);
 
   if (!otpRecord.isMatch(otp)) {
     throw new Error("Invalid OTP");

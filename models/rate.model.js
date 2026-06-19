@@ -6,6 +6,7 @@ export class Rate {
     this.bookingId = data.bookingId || null;
     this.rating = data.rating ?? 0;
     this.comment = data.comment || null;
+    this.userFullName = data.userFullName || data.fullName || null;
     this.createdAt = data.createdAt || null;
     this.updatedAt = data.updatedAt || null;
   }
@@ -38,6 +39,7 @@ export class Rate {
       bookingId: this.bookingId,
       rating: this.rating,
       comment: this.comment,
+      userFullName: this.userFullName,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
