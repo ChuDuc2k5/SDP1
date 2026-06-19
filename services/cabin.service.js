@@ -53,6 +53,20 @@ export const listCabins = async (sortType = "default") => {
   return strategy.apply(cabinModel.findAllQuery());
 };
 
+export const listCabinsPaginated = async ({
+  sortType = "default",
+  limit,
+  offset,
+}) => {
+  const strategy = CabinSortFactory.getStrategy(sortType);
+  return strategy.apply(cabinModel.findPaginated({ limit, offset }));
+};
+
+export const countCabins = async () => {
+  const result = await cabinModel.countAll();
+  return Number(result?.total || 0);
+};
+
 export const listManageCabins = async () => {
   // TODO: When cabins has ownerId, filter by current cabinOwner.
   const cabins = await cabinModel.findAll();

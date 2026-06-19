@@ -26,6 +26,14 @@ const cabinModel = {
     return db("cabins").select("*").orderBy("name", "asc");
   },
 
+  findPaginated({ limit, offset }) {
+    return db("cabins").select("*").limit(limit).offset(offset);
+  },
+
+  countAll() {
+    return db("cabins").count({ total: "*" }).first();
+  },
+
   findById(id) {
     if (!id) return null;
     return db("cabins").where("_id", id).first();

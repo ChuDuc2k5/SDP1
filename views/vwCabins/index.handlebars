@@ -9,7 +9,7 @@
 
             <div class="flex items-center gap-3 bg-stone-800 p-2 rounded-lg border border-stone-700">
                 <label class="text-stone-400 text-sm font-semibold pl-2">SORT BY:</label>
-                <select onchange="window.location.href='/cabins?sort=' + this.value" 
+                <select onchange="const params = new URLSearchParams(window.location.search); params.set('sort', this.value); params.set('page', '1'); window.location.href = '/cabins?' + params.toString();"
                         class="bg-transparent text-yellow-500 font-bold outline-none cursor-pointer pr-2">
                     <option value="default" {{#if (eq activeSort 'default')}}selected{{/if}}>Default (A-Z)</option>
                     <option value="price-asc" {{#if (eq activeSort 'price-asc')}}selected{{/if}}>Price: Low to High</option>
@@ -61,6 +61,44 @@
                 </div>
                 {{/each}}
             </div>
+
+            {{#if pagination.showPagination}}
+            <nav class="mt-12 flex justify-center" aria-label="Cabin pagination">
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                    {{#if pagination.hasPrevPage}}
+                    <a href="{{pagination.prevPageUrl}}" class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
+                        Previous
+                    </a>
+                    {{else}}
+                    <span class="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-4 text-sm font-bold text-stone-600" aria-disabled="true">
+                        Previous
+                    </span>
+                    {{/if}}
+
+                    {{#each pagination.pages}}
+                    {{#if isActive}}
+                    <span class="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-yellow-400 bg-yellow-500 px-4 text-sm font-extrabold text-stone-950 shadow-lg shadow-yellow-900/20" aria-current="page">
+                        {{number}}
+                    </span>
+                    {{else}}
+                    <a href="{{url}}" class="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-300 transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
+                        {{number}}
+                    </a>
+                    {{/if}}
+                    {{/each}}
+
+                    {{#if pagination.hasNextPage}}
+                    <a href="{{pagination.nextPageUrl}}" class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
+                        Next
+                    </a>
+                    {{else}}
+                    <span class="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-4 text-sm font-bold text-stone-600" aria-disabled="true">
+                        Next
+                    </span>
+                    {{/if}}
+                </div>
+            </nav>
+            {{/if}}
         {{/if}}
     </div>
 </div>
