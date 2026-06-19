@@ -44,14 +44,16 @@
         <div>
             <label class="block mb-2 text-yellow-500 font-semibold">Check-in Date</label>
             <input type="date" name="startDate" required value="{{formatDate booking.startDate 'YYYY-MM-DD'}}"
-                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+                inputmode="none" autocomplete="off"
+                class="booking-date-input w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
         </div>
 
         <!-- Check-out Date -->
         <div>
             <label class="block mb-2 text-yellow-500 font-semibold">Check-out Date</label>
             <input type="date" name="endDate" required value="{{formatDate booking.endDate 'YYYY-MM-DD'}}"
-                class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
+                inputmode="none" autocomplete="off"
+                class="booking-date-input w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
         </div>
 
         <!-- Number of Guests -->

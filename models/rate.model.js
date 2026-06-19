@@ -1,34 +1,47 @@
-import db from "../dbHelper/db.js";
+export class Rate {
+  constructor(data = {}) {
+    this._id = data._id || null;
+    this.userId = data.userId || null;
+    this.cabinId = data.cabinId || null;
+    this.bookingId = data.bookingId || null;
+    this.rating = data.rating ?? 0;
+    this.comment = data.comment || null;
+    this.createdAt = data.createdAt || null;
+    this.updatedAt = data.updatedAt || null;
+  }
 
-export default {
-  findByCabinId(cabinId) {
-    return db("rates as r")
-      .leftJoin("users as u", "r.userId", "u._id")
-      .where("r.cabinId", cabinId)
-      .select("r.*", "u.fullName as userFullName")
-      .orderBy("r._id", "desc");
-  },
+  static fromRow(row) {
+    if (!row) return null;
+    return new Rate(row);
+  }
 
-  findByBookingId(bookingId) {
-    if (!bookingId) return null;
-    return db("rates").where("bookingId", bookingId).first();
-  },
+  isPositive() {
+    return Number(this.rating || 0) >= 4;
+  }
 
-  findByUserId(userId) {
-    return db("rates").where("userId", userId).orderBy("createdAt", "desc");
-  },
+  getRatingLabel() {
+    const rating = Number(this.rating || 0);
 
-  async create(data) {
-    const inserted = await db("rates")
-      .insert({
-        userId: data.userId,
-        cabinId: data.cabinId,
-        bookingId: data.bookingId,
-        rating: data.rating,
-        comment: data.comment || null,
-      })
-      .returning("*");
+    if (rating >= 5) return "Excellent";
+    if (rating >= 4) return "Good";
+    if (rating >= 3) return "Average";
+    if (rating >= 2) return "Poor";
+    if (rating >= 1) return "Very poor";
+    return "Unrated";
+  }
 
-    return inserted?.[0] || null;
-  },
-};
+  toJSON() {
+    return {
+      _id: this._id,
+      userId: this.userId,
+      cabinId: this.cabinId,
+      bookingId: this.bookingId,
+      rating: this.rating,
+      comment: this.comment,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
+
+export default Rate;

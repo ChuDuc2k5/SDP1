@@ -1,97 +1,137 @@
-import db from "../dbHelper/db.js";
+const HISTORY_STATUSES = ["cancelled", "checked-out"];
 
-const ACTIVE_STATUSES = ["unconfirmed", "pending", "confirmed", "checked-in"];
+const toDateOnly = (value) => {
+  if (!value) return null;
 
-const selectWithCabin = () =>
-  db("bookings as b")
-    .join("cabins as c", "b.cabinId", "c._id")
-    .select(
-      "b.*",
-      "c.name as cabinName",
-      "c.image as cabinImage",
-      "c.maxCapacity as cabinMaxCapacity",
-      "c.regularPrice as cabinRegularPrice",
-      "c.discount as cabinDiscount",
-    );
+  const date =
+    value instanceof Date
+      ? new Date(value)
+      : new Date(String(value).includes("T") ? value : `${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
 
-const attachCabin = (row) =>
-  row
-    ? {
-        ...row,
-        userId: row.userId,
-        cabinId: row.cabinId,
-        cabin: {
-          _id: row.cabinId,
-          name: row.cabinName,
-          image: row.cabinImage,
-          maxCapacity: row.cabinMaxCapacity,
-          regularPrice: row.cabinRegularPrice,
-          discount: row.cabinDiscount,
-        },
-      }
-    : null;
-
-const attachCabins = (rows) => rows.map(attachCabin);
-
-export default {
-  findAll() {
-    return selectWithCabin().orderBy("b.startDate", "desc").then(attachCabins);
-  },
-
-  findByUserId(userId) {
-    if (!userId) {
-      throw new Error("userId is required");
-    }
-
-    return selectWithCabin()
-      .where("b.userId", userId)
-      .orderBy("b.startDate", "desc")
-      .then(attachCabins);
-  },
-
-  findById(id) {
-    if (!id) return null;
-
-    return selectWithCabin()
-      .where("b._id", id)
-      .first()
-      .then(attachCabin);
-  },
-
-  async createBooking(bookingData) {
-    const inserted = await db("bookings").insert(bookingData).returning("*");
-    return inserted?.[0] || null;
-  },
-
-  async updateById(id, bookingData) {
-    const updated = await db("bookings")
-      .where("_id", id)
-      .update({ ...bookingData, updatedAt: db.fn.now() })
-      .returning("*");
-
-    return updated?.[0] || null;
-  },
-
-  async hasOverlap({ cabinId, startDate, endDate, excludeBookingId = null }) {
-    const query = db("bookings")
-      .where("cabinId", cabinId)
-      .whereIn("status", ACTIVE_STATUSES)
-      .where("startDate", "<", endDate)
-      .where("endDate", ">", startDate);
-
-    if (excludeBookingId) {
-      query.whereNot("_id", excludeBookingId);
-    }
-
-    const existing = await query.first("_id");
-    return Boolean(existing);
-  },
-
-  create(type, bookingData) {
-    return this.createBooking(bookingData);
-  },
-
-  update(id, bookingData) {
-    return this.updateById(id, bookingData);
-  },
+  date.setHours(0, 0, 0, 0);
+  return date;
 };
+
+const formatDateLabel = (value) => {
+  const date = toDateOnly(value);
+  if (!date) return "";
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+};
+
+export class Booking {
+  constructor(data = {}) {
+    this._id = data._id || null;
+    this.userId = data.userId || null;
+    this.cabinId = data.cabinId || null;
+    this.startDate = data.startDate || null;
+    this.endDate = data.endDate || null;
+    this.numNights = data.numNights ?? 0;
+    this.numGuests = data.numGuests ?? 0;
+    this.cabinPrice = data.cabinPrice ?? 0;
+    this.extrasPrice = data.extrasPrice ?? 0;
+    this.totalPrice = data.totalPrice ?? null;
+    this.status = data.status || "unconfirmed";
+    this.hasBreakfast = Boolean(data.hasBreakfast);
+    this.isPaid = Boolean(data.isPaid);
+    this.observations = data.observations || null;
+    this.createdAt = data.createdAt || null;
+    this.updatedAt = data.updatedAt || null;
+    this.cabin = data.cabin || null;
+    this.user = data.user || data.guest || null;
+    this.guest = data.guest || data.user || null;
+  }
+
+  static fromRow(row) {
+    if (!row) return null;
+    return new Booking(row);
+  }
+
+  isCancelled() {
+    return this.status === "cancelled";
+  }
+
+  isCheckedOut() {
+    return this.status === "checked-out";
+  }
+
+  isUpcoming() {
+    const endDate = toDateOnly(this.endDate);
+    const today = toDateOnly(new Date());
+
+    return Boolean(
+      endDate &&
+        today &&
+        !HISTORY_STATUSES.includes(this.status) &&
+        endDate >= today,
+    );
+  }
+
+  isHistory() {
+    const endDate = toDateOnly(this.endDate);
+    const today = toDateOnly(new Date());
+
+    return Boolean(
+      HISTORY_STATUSES.includes(this.status) || (endDate && today && endDate < today),
+    );
+  }
+
+  isPaidBooking() {
+    return Boolean(this.isPaid);
+  }
+
+  getDateRangeLabel() {
+    const startLabel = formatDateLabel(this.startDate);
+    const endLabel = formatDateLabel(this.endDate);
+
+    if (!startLabel && !endLabel) return "";
+    if (!startLabel) return endLabel;
+    if (!endLabel) return startLabel;
+    return `${startLabel} - ${endLabel}`;
+  }
+
+  getGuestLabel() {
+    const guests = Number(this.numGuests || 0);
+    if (!guests) return "No guests";
+    return `${guests} ${guests === 1 ? "guest" : "guests"}`;
+  }
+
+  calculateTotalPrice() {
+    if (this.totalPrice != null) {
+      return Number(this.totalPrice);
+    }
+
+    return Number(this.cabinPrice || 0) + Number(this.extrasPrice || 0);
+  }
+
+  toJSON() {
+    return {
+      _id: this._id,
+      userId: this.userId,
+      cabinId: this.cabinId,
+      startDate: this.startDate,
+      endDate: this.endDate,
+      numNights: this.numNights,
+      numGuests: this.numGuests,
+      cabinPrice: this.cabinPrice,
+      extrasPrice: this.extrasPrice,
+      totalPrice: this.calculateTotalPrice(),
+      status: this.status,
+      hasBreakfast: this.hasBreakfast,
+      isPaid: this.isPaid,
+      observations: this.observations,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      cabin: this.cabin,
+      user: this.user,
+      guest: this.guest,
+    };
+  }
+}
+
+export default Booking;

@@ -1,7 +1,23 @@
 <section class="max-w-6xl mx-auto px-6 py-10">
-    <h1 class="text-3xl font-bold text-yellow-500 mb-6">
-        {{#if isAdmin}}All Bookings{{else}}My Bookings{{/if}}
-    </h1>
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-yellow-500">
+                {{#if isAdmin}}Bookings Management{{else}}My Bookings{{/if}}
+            </h1>
+            <p class="mt-1 text-sm text-stone-400">
+                {{#if isHistoryView}}Past, cancelled, and checked-out bookings.{{else}}Upcoming active bookings sorted by nearest start date.{{/if}}
+            </p>
+        </div>
+
+        <div class="inline-flex rounded-xl border border-stone-700 bg-stone-900 p-1">
+            <a href="{{upcomingUrl}}" class="rounded-lg px-4 py-2 text-sm font-bold transition {{#if isUpcomingView}}bg-yellow-500 text-stone-950 shadow-lg shadow-yellow-900/20{{else}}text-stone-300 hover:bg-stone-800 hover:text-yellow-500{{/if}}">
+                Upcoming
+            </a>
+            <a href="{{historyUrl}}" class="rounded-lg px-4 py-2 text-sm font-bold transition {{#if isHistoryView}}bg-yellow-500 text-stone-950 shadow-lg shadow-yellow-900/20{{else}}text-stone-300 hover:bg-stone-800 hover:text-yellow-500{{/if}}">
+                Booking History
+            </a>
+        </div>
+    </div>
 
     {{#if success}}
     <div class="mb-6 rounded-xl border border-green-600 bg-green-900/40 p-4 text-green-200">
@@ -9,30 +25,93 @@
     </div>
     {{/if}}
 
+    {{#if isCabinOwner}}
+    <form method="GET" action="/booking" class="mb-8 rounded-xl border border-stone-700 bg-stone-900/70 p-4">
+        <input type="hidden" name="view" value="{{activeView}}">
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1.8fr)_minmax(140px,0.8fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_auto_auto]">
+            <input
+                type="search"
+                name="q"
+                value="{{ownerFilters.q}}"
+                placeholder="Search by guest name, email, phone, or cabin..."
+                class="min-w-0 rounded-lg border border-stone-700 bg-stone-950 px-4 py-3 text-sm text-stone-100 outline-none transition focus:border-yellow-500"
+            >
+
+            <select name="status" class="rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm text-stone-100 outline-none transition focus:border-yellow-500">
+                <option value="">All status</option>
+                {{#each statusOptions}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                {{/each}}
+            </select>
+
+            <input
+                type="date"
+                name="dateFrom"
+                value="{{ownerFilters.dateFrom}}"
+                inputmode="none"
+                autocomplete="off"
+                aria-label="Filter bookings from date"
+                class="booking-date-input rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm text-stone-100 outline-none transition focus:border-yellow-500"
+            >
+
+            <input
+                type="date"
+                name="dateTo"
+                value="{{ownerFilters.dateTo}}"
+                inputmode="none"
+                autocomplete="off"
+                aria-label="Filter bookings to date"
+                class="booking-date-input rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm text-stone-100 outline-none transition focus:border-yellow-500"
+            >
+
+            <button type="submit" class="rounded-lg bg-yellow-500 px-4 py-3 text-sm font-bold text-stone-950 transition hover:bg-yellow-400">
+                Search
+            </button>
+
+            <a href="{{clearFiltersUrl}}" class="rounded-lg border border-stone-700 px-4 py-3 text-center text-sm font-bold text-stone-300 transition hover:border-yellow-500 hover:text-yellow-500">
+                Clear
+            </a>
+        </div>
+    </form>
+    {{/if}}
+
     {{#if empty}}
     <div class="rounded-xl border border-stone-700 bg-stone-800 p-8 text-center text-stone-300">
-        <p class="text-xl font-semibold text-white">You do not have any bookings yet.</p>
-        <p class="mt-2 text-stone-400">Return to the cabin page to make a booking now.</p>
-        <a href="/cabins"
-            class="inline-block mt-4 bg-yellow-500 text-stone-900 px-4 py-2 rounded-lg hover:bg-yellow-400">View
-            Cabins</a>
+        <p class="text-xl font-semibold text-white">{{emptyTitle}}</p>
+        <p class="mt-2 text-stone-400">{{emptySubtitle}}</p>
+        {{#if filterActive}}
+        <a href="{{clearFiltersUrl}}" class="mt-4 inline-block rounded-lg bg-yellow-500 px-4 py-2 font-bold text-stone-900 transition hover:bg-yellow-400">
+            Clear filters
+        </a>
+        {{else}}
+            {{#if isUpcomingView}}
+            <a href="{{historyUrl}}" class="mt-4 inline-block rounded-lg bg-yellow-500 px-4 py-2 font-bold text-stone-900 transition hover:bg-yellow-400">
+                View Booking History
+            </a>
+            {{/if}}
+        {{/if}}
     </div>
     {{else}}
     <div class="space-y-4">
         {{#each bookings}}
-        <div class="bg-stone-800 p-6 rounded-xl border border-stone-700 flex justify-between items-center">
-
+        <div class="bg-stone-800 p-6 rounded-xl border border-stone-700 flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
             <div>
                 <h2 class="text-xl font-semibold">{{this.cabin.name}}</h2>
-                <p class="text-stone-400">
-                    {{this.startDate}} → {{this.endDate}}
+                {{#if ../isAdmin}}
+                <p class="mt-1 text-sm text-stone-300">
+                    Guest: {{this.guest.name}}
+                    {{#if this.guest.email}}<span class="text-stone-500">({{this.guest.email}})</span>{{/if}}
+                </p>
+                {{#if this.guest.phone}}
+                <p class="text-sm text-stone-500">Phone: {{this.guest.phone}}</p>
+                {{/if}}
+                {{/if}}
+                <p class="mt-2 text-stone-400">
+                    {{formatDate this.startDate "MMM DD, YYYY"}} &rarr; {{formatDate this.endDate "MMM DD, YYYY"}}
                 </p>
                 <p class="text-stone-500 text-sm">
-                    Guests: {{this.numGuests}} | Type: {{this.type}}
+                    Guests: {{this.numGuests}}
                 </p>
-                {{#if ../isAdmin}}
-                <p class="text-stone-400 text-sm">User ID: {{this.userId}}</p>
-                {{/if}}
             </div>
             <div class="text-right">
                 <span class="inline-block bg-stone-600 text-stone-300 px-3 py-1 rounded-full text-sm">
@@ -45,9 +124,52 @@
                     </a>
                 </div>
             </div>
-
         </div>
         {{/each}}
     </div>
+
+    {{#if showPagination}}
+    <nav class="mt-10 flex justify-center" aria-label="Booking pagination">
+        <div class="flex max-w-full flex-wrap items-center justify-center gap-2 px-1">
+            {{#if hasPrevPage}}
+            <a href="{{prevPageUrl}}" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
+                Previous
+            </a>
+            {{else}}
+            <span class="inline-flex h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-3 text-sm font-bold text-stone-600 sm:px-4" aria-disabled="true">
+                Previous
+            </span>
+            {{/if}}
+
+            {{#each paginationItems}}
+            {{#if (eq type "page")}}
+                {{#if isActive}}
+                <span class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-yellow-400 bg-yellow-500 px-3 text-sm font-extrabold text-stone-950 shadow-lg shadow-yellow-900/20 sm:px-4" aria-current="page">
+                    {{value}}
+                </span>
+                {{else}}
+                <a href="{{url}}" class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-300 transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
+                    {{value}}
+                </a>
+                {{/if}}
+            {{else}}
+            <span class="inline-flex h-11 min-w-8 shrink-0 items-center justify-center px-1 text-sm font-bold text-stone-500" aria-hidden="true">
+                ...
+            </span>
+            {{/if}}
+            {{/each}}
+
+            {{#if hasNextPage}}
+            <a href="{{nextPageUrl}}" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
+                Next
+            </a>
+            {{else}}
+            <span class="inline-flex h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-3 text-sm font-bold text-stone-600 sm:px-4" aria-disabled="true">
+                Next
+            </span>
+            {{/if}}
+        </div>
+    </nav>
+    {{/if}}
     {{/if}}
 </section>

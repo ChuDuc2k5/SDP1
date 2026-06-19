@@ -1,9 +1,9 @@
-import settingModel from "../models/setting.model.js";
+import settingDao from "../dao/setting.dao.js";
 
-export const getCurrentSettings = () => settingModel.getCurrent();
+export const getCurrentSettings = () => settingDao.getCurrent();
 
 export const updateCurrentSettings = (payload) => {
-  return settingModel.updateCurrent({
+  return settingDao.updateCurrent({
     breakfastPrice: payload.breakfastPrice,
     miniBookingLength: payload.miniBookingLength || payload.minBookingLength,
     maxBookingLength: payload.maxBookingLength,

@@ -1,6 +1,6 @@
-import cabinModel from "../models/cabin.model.js";
-import imageModel from "../models/image.model.js";
-import rateModel from "../models/rate.model.js";
+import cabinDao from "../dao/cabin.dao.js";
+import imageDao from "../dao/image.dao.js";
+import rateDao from "../dao/rate.dao.js";
 import { CabinSortFactory } from "../patterns/factory/cabin/factoryPattern.js";
 
 const parsePositiveInt = (value, fieldName) => {
@@ -50,7 +50,7 @@ const buildCabinPayload = (body, file, existingCabin = null) => {
 
 export const listCabins = async (sortType = "default") => {
   const strategy = CabinSortFactory.getStrategy(sortType);
-  return strategy.apply(cabinModel.findAllQuery());
+  return strategy.apply(cabinDao.findAllQuery());
 };
 
 export const listCabinsPaginated = async ({
@@ -59,31 +59,31 @@ export const listCabinsPaginated = async ({
   offset,
 }) => {
   const strategy = CabinSortFactory.getStrategy(sortType);
-  return strategy.apply(cabinModel.findPaginated({ limit, offset }));
+  return strategy.apply(cabinDao.findPaginated({ limit, offset }));
 };
 
 export const countCabins = async () => {
-  const result = await cabinModel.countAll();
+  const result = await cabinDao.countAll();
   return Number(result?.total || 0);
 };
 
 export const listManageCabins = async () => {
   // TODO: When cabins has ownerId, filter by current cabinOwner.
-  const cabins = await cabinModel.findAll();
+  const cabins = await cabinDao.findAll();
   return Array.isArray(cabins) ? cabins.filter(Boolean) : [];
 };
 
 export const getCabinById = async (id) => {
-  return cabinModel.findById(id);
+  return cabinDao.findById(id);
 };
 
 export const getCabinDetail = async (id) => {
-  const cabin = await cabinModel.findById(id);
+  const cabin = await cabinDao.findById(id);
   if (!cabin) return null;
 
   const [rates, images] = await Promise.all([
-    rateModel.findByCabinId(id),
-    imageModel.findByCabinId(id),
+    rateDao.findByCabinId(id),
+    imageDao.findByCabinId(id),
   ]);
 
   const totalRating = rates.reduce((sum, item) => sum + Number(item.rating || 0), 0);
@@ -98,20 +98,20 @@ export const getCabinDetail = async (id) => {
 };
 
 export const createCabin = async ({ body, file }) => {
-  return cabinModel.create(buildCabinPayload(body, file));
+  return cabinDao.create(buildCabinPayload(body, file));
 };
 
 export const updateCabin = async ({ id, body, file }) => {
-  const cabin = await cabinModel.findById(id);
+  const cabin = await cabinDao.findById(id);
   if (!cabin) return null;
 
-  return cabinModel.updateById(id, buildCabinPayload(body, file, cabin));
+  return cabinDao.update(id, buildCabinPayload(body, file, cabin));
 };
 
 export const deleteCabin = async (id) => {
-  return cabinModel.deleteById(id);
+  return cabinDao.delete(id);
 };
 
 export const duplicateCabin = async (id) => {
-  return cabinModel.duplicateById(id);
+  return cabinDao.duplicateById(id);
 };

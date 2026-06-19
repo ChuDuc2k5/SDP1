@@ -62,37 +62,43 @@
                 {{/each}}
             </div>
 
-            {{#if pagination.showPagination}}
+            {{#if showPagination}}
             <nav class="mt-12 flex justify-center" aria-label="Cabin pagination">
-                <div class="flex flex-wrap items-center justify-center gap-2">
-                    {{#if pagination.hasPrevPage}}
-                    <a href="{{pagination.prevPageUrl}}" class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
+                <div class="flex max-w-full flex-wrap items-center justify-center gap-2 px-1">
+                    {{#if hasPrevPage}}
+                    <a href="{{prevPageUrl}}" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
                         Previous
                     </a>
                     {{else}}
-                    <span class="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-4 text-sm font-bold text-stone-600" aria-disabled="true">
+                    <span class="inline-flex h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-3 text-sm font-bold text-stone-600 sm:px-4" aria-disabled="true">
                         Previous
                     </span>
                     {{/if}}
 
-                    {{#each pagination.pages}}
-                    {{#if isActive}}
-                    <span class="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-yellow-400 bg-yellow-500 px-4 text-sm font-extrabold text-stone-950 shadow-lg shadow-yellow-900/20" aria-current="page">
-                        {{number}}
-                    </span>
+                    {{#each paginationItems}}
+                    {{#if (eq type "page")}}
+                        {{#if isActive}}
+                        <span class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-yellow-400 bg-yellow-500 px-3 text-sm font-extrabold text-stone-950 shadow-lg shadow-yellow-900/20 sm:px-4" aria-current="page">
+                            {{value}}
+                        </span>
+                        {{else}}
+                        <a href="{{url}}" class="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-300 transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
+                            {{value}}
+                        </a>
+                        {{/if}}
                     {{else}}
-                    <a href="{{url}}" class="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-300 transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
-                        {{number}}
-                    </a>
+                    <span class="inline-flex h-11 min-w-8 shrink-0 items-center justify-center px-1 text-sm font-bold text-stone-500" aria-hidden="true">
+                        ...
+                    </span>
                     {{/if}}
                     {{/each}}
 
-                    {{#if pagination.hasNextPage}}
-                    <a href="{{pagination.nextPageUrl}}" class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-4 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500">
+                    {{#if hasNextPage}}
+                    <a href="{{nextPageUrl}}" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-stone-700 bg-stone-800 px-3 text-sm font-bold text-stone-200 shadow-lg transition-all hover:border-yellow-500 hover:bg-stone-700 hover:text-yellow-500 sm:px-4">
                         Next
                     </a>
                     {{else}}
-                    <span class="inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-4 text-sm font-bold text-stone-600" aria-disabled="true">
+                    <span class="inline-flex h-11 shrink-0 cursor-not-allowed items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-3 text-sm font-bold text-stone-600 sm:px-4" aria-disabled="true">
                         Next
                     </span>
                     {{/if}}

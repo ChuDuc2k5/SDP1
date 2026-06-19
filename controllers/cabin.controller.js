@@ -1,8 +1,8 @@
-import {
-  countCabins,
-  getCabinDetail,
-  listCabinsPaginated,
-} from "../services/cabin.service.js";
+import cabinDao from "../dao/cabin.dao.js";
+import imageDao from "../dao/image.dao.js";
+import rateDao from "../dao/rate.dao.js";
+import { Cabin } from "../models/cabin.model.js";
+import { CabinSortFactory } from "../patterns/factory/cabin/factoryPattern.js";
 
 const CABINS_PER_PAGE = 9;
 
@@ -11,10 +11,19 @@ const parsePage = (value) => {
   return Number.isInteger(page) && page > 0 ? page : 1;
 };
 
-const buildCabinPageUrl = (query, page) => {
+const buildBaseQuery = (query = {}) => {
+  return Object.entries(query).reduce((baseQuery, [key, value]) => {
+    if (key !== "page") {
+      baseQuery[key] = value;
+    }
+    return baseQuery;
+  }, {});
+};
+
+const buildCabinPageUrl = (baseQuery, page) => {
   const params = new URLSearchParams();
 
-  Object.entries(query).forEach(([key, value]) => {
+  Object.entries(baseQuery).forEach(([key, value]) => {
     if (key === "page" || value === undefined || value === null || value === "") {
       return;
     }
@@ -37,7 +46,65 @@ const buildCabinPageUrl = (query, page) => {
   return `/cabins?${params.toString()}`;
 };
 
-const buildPagination = ({ query, currentPage, totalPages }) => {
+export const buildPaginationItems = (
+  currentPage,
+  totalPages,
+  baseQuery = {},
+) => {
+  const items = [];
+
+  const addPage = (page) => {
+    items.push({
+      type: "page",
+      value: page,
+      isActive: page === currentPage,
+      url: buildCabinPageUrl(baseQuery, page),
+    });
+  };
+
+  const addEllipsis = () => {
+    if (items[items.length - 1]?.type !== "ellipsis") {
+      items.push({ type: "ellipsis" });
+    }
+  };
+
+  if (totalPages <= 7) {
+    for (let page = 1; page <= totalPages; page += 1) {
+      addPage(page);
+    }
+    return items;
+  }
+
+  addPage(1);
+
+  let start = Math.max(2, currentPage - 2);
+  let end = Math.min(totalPages - 1, currentPage + 2);
+
+  if (currentPage <= 2) {
+    start = 2;
+    end = 3;
+  } else if (currentPage >= totalPages - 1) {
+    start = totalPages - 2;
+    end = totalPages - 1;
+  }
+
+  if (start > 2) {
+    addEllipsis();
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    addPage(page);
+  }
+
+  if (end < totalPages - 1) {
+    addEllipsis();
+  }
+
+  addPage(totalPages);
+  return items;
+};
+
+const buildPagination = ({ baseQuery, currentPage, totalPages }) => {
   const hasPrevPage = currentPage > 1;
   const hasNextPage = currentPage < totalPages;
   const prevPage = hasPrevPage ? currentPage - 1 : 1;
@@ -50,17 +117,42 @@ const buildPagination = ({ query, currentPage, totalPages }) => {
     hasNextPage,
     prevPage,
     nextPage,
-    prevPageUrl: buildCabinPageUrl(query, prevPage),
-    nextPageUrl: buildCabinPageUrl(query, nextPage),
+    prevPageUrl: buildCabinPageUrl(baseQuery, prevPage),
+    nextPageUrl: buildCabinPageUrl(baseQuery, nextPage),
     showPagination: totalPages > 1,
-    pages: Array.from({ length: totalPages }, (_, index) => {
-      const page = index + 1;
-      return {
-        number: page,
-        url: buildCabinPageUrl(query, page),
-        isActive: page === currentPage,
-      };
-    }),
+    paginationItems: buildPaginationItems(currentPage, totalPages, baseQuery),
+  };
+};
+
+const toCabinView = (row) => new Cabin(row).toJSON();
+
+const listCabinsPaginated = async ({ sortType = "default", limit, offset }) => {
+  const strategy = CabinSortFactory.getStrategy(sortType);
+  const cabins = await strategy.apply(cabinDao.findPaginated({ limit, offset }));
+  return cabins.map(toCabinView);
+};
+
+const countCabins = async () => {
+  const result = await cabinDao.countAll();
+  return Number(result?.total || 0);
+};
+
+const getCabinDetail = async (id) => {
+  const cabin = await cabinDao.findById(id);
+  if (!cabin) return null;
+
+  const [rates, images] = await Promise.all([
+    rateDao.findByCabinId(id),
+    imageDao.findByCabinId(id),
+  ]);
+  const totalRating = rates.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+
+  return {
+    cabin: toCabinView(cabin),
+    rates,
+    images,
+    avgRating: rates.length ? (totalRating / rates.length).toFixed(1) : null,
+    hasRates: rates.length > 0,
   };
 };
 
@@ -72,13 +164,14 @@ export const listPublicCabins = async (req, res) => {
     const totalPages = Math.max(Math.ceil(totalCabins / CABINS_PER_PAGE), 1);
     const currentPage = Math.min(requestedPage, totalPages);
     const offset = (currentPage - 1) * CABINS_PER_PAGE;
+    const baseQuery = buildBaseQuery(req.query);
     const cabins = await listCabinsPaginated({
       sortType,
       limit: CABINS_PER_PAGE,
       offset,
     });
     const pagination = buildPagination({
-      query: req.query,
+      baseQuery,
       currentPage,
       totalPages,
     });
@@ -87,7 +180,7 @@ export const listPublicCabins = async (req, res) => {
       cabins,
       empty: cabins.length === 0,
       activeSort: sortType,
-      pagination,
+      ...pagination,
     });
   } catch (error) {
     console.error("Failed to list cabins:", error.message);

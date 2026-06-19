@@ -1,0 +1,18 @@
+.booking-date-input,
+input[type="date"] {
+    color-scheme: dark;
+}
+
+.booking-date-input {
+    cursor: pointer;
+}
+
+.booking-date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 1;
+    filter: invert(82%) sepia(64%) saturate(743%) hue-rotate(357deg) brightness(101%) contrast(96%);
+}
+
+.booking-date-input::-webkit-datetime-edit {
+    color: inherit;
+}

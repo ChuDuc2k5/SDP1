@@ -26,11 +26,19 @@ app.engine(
       formatDate: (date, format) => {
         if (!date) return "";
         const d = new Date(date);
+        if (Number.isNaN(d.getTime())) return "";
         if (format === "YYYY-MM-DD") {
           const year = d.getFullYear();
           const month = String(d.getMonth() + 1).padStart(2, "0");
           const day = String(d.getDate()).padStart(2, "0");
           return `${year}-${month}-${day}`;
+        }
+        if (format === "MMM DD, YYYY") {
+          return d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          });
         }
         return d.toLocaleDateString();
       },

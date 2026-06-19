@@ -1,18 +1,12 @@
 import express from "express";
+import {
+    redirectProfile,
+    renderGuestAccount,
+} from "../controllers/account.controller.js";
 
 const router = express.Router();
 
-
-router.get("/", (req, res) => {
-    res.render("vwAccount/guest");
-});
-
-router.get("/profile", (req, res) => {
-    if (!req.currentUser) {
-        return res.redirect("/auth/login");
-    }
-
-    return res.redirect("/user/profile");
-});
+router.get("/", renderGuestAccount);
+router.get("/profile", redirectProfile);
 
 export default router;

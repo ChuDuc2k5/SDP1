@@ -1,93 +1,72 @@
-import db from "../dbHelper/db.js";
-import { CabinPrototype } from "../patterns/prototype/cabin/cabinPrototype.js";
+export class Cabin {
+  constructor(data = {}) {
+    this._id = data._id || null;
+    this.name = data.name || "";
+    this.maxCapacity = data.maxCapacity ?? 0;
+    this.regularPrice = data.regularPrice ?? 0;
+    this.discount = data.discount ?? 0;
+    this.image = data.image || "";
+    this.description = data.description || "";
+    this.location = data.location || null;
+    this.amenities = data.amenities || null;
+    this.createdAt = data.createdAt || null;
+    this.updatedAt = data.updatedAt || null;
+  }
 
-const withoutSystemFields = (cabin = {}) => {
-  const { _id, id, created_at, updated_at, createdAt, updatedAt, ...data } = cabin;
-  return data;
-};
+  static fromRow(row) {
+    if (!row) return null;
+    return new Cabin(row);
+  }
 
-const normalizeCabinPayload = (data = {}) => ({
-  name: data.name,
-  maxCapacity: data.maxCapacity,
-  regularPrice: data.regularPrice,
-  discount: data.discount ?? 0,
-  image: data.image,
-  description: data.description || "",
-  location: data.location || null,
-  amenities: data.amenities || null,
-});
+  hasDiscount() {
+    return Number(this.discount || 0) > 0;
+  }
 
-const cabinModel = {
-  findAllQuery() {
-    return db("cabins").select("*");
-  },
+  getFinalPrice() {
+    const regularPrice = Number(this.regularPrice || 0);
+    const discount = Number(this.discount || 0);
 
-  findAll() {
-    return db("cabins").select("*").orderBy("name", "asc");
-  },
+    if (!regularPrice) return 0;
+    if (!this.hasDiscount()) return regularPrice;
 
-  findPaginated({ limit, offset }) {
-    return db("cabins").select("*").limit(limit).offset(offset);
-  },
+    return Number((regularPrice * (1 - discount / 100)).toFixed(2));
+  }
 
-  countAll() {
-    return db("cabins").count({ total: "*" }).first();
-  },
+  canFitGuests(numGuests) {
+    const guests = Number(numGuests);
+    return Number.isInteger(guests) && guests > 0 && guests <= Number(this.maxCapacity);
+  }
 
-  findById(id) {
-    if (!id) return null;
-    return db("cabins").where("_id", id).first();
-  },
-
-  async create(cabinData) {
-    const inserted = await db("cabins")
-      .insert(normalizeCabinPayload(cabinData))
-      .returning("*");
-
-    return inserted?.[0] || null;
-  },
-
-  async duplicateById(id, overrides = {}) {
-    const cabin = await this.findById(id);
-    if (!cabin) {
-      return null;
+  getAmenitiesList() {
+    if (Array.isArray(this.amenities)) {
+      return this.amenities.filter(Boolean);
     }
 
-    const prototype = new CabinPrototype(cabin);
-    const clonedCabin = normalizeCabinPayload({
-      ...withoutSystemFields(prototype.clone()),
-      name: `${cabin.name} (Copy)`,
-      ...overrides,
-    });
+    if (typeof this.amenities !== "string") {
+      return [];
+    }
 
-    const inserted = await db("cabins").insert(clonedCabin).returning("*");
-    return inserted?.[0] || null;
-  },
+    return this.amenities
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
 
-  async updateById(id, cabinData) {
-    const updated = await db("cabins")
-      .where("_id", id)
-      .update({ ...cabinData, updatedAt: db.fn.now() })
-      .returning("*");
+  toJSON() {
+    return {
+      _id: this._id,
+      name: this.name,
+      maxCapacity: this.maxCapacity,
+      regularPrice: this.regularPrice,
+      discount: this.discount,
+      image: this.image,
+      description: this.description,
+      location: this.location,
+      amenities: this.amenities,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
 
-    return updated?.[0] || null;
-  },
-
-  deleteById(id) {
-    return db("cabins").where("_id", id).del();
-  },
-
-  add(cabinData) {
-    return this.create(cabinData);
-  },
-
-  update(id, cabinData) {
-    return this.updateById(id, cabinData);
-  },
-
-  delete(id) {
-    return this.deleteById(id);
-  },
-};
-
-export default cabinModel;
+export default Cabin;

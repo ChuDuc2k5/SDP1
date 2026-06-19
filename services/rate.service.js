@@ -1,13 +1,13 @@
-import bookingModel from "../models/booking.model.js";
-import rateModel from "../models/rate.model.js";
+import bookingDao from "../dao/booking.dao.js";
+import rateDao from "../dao/rate.dao.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
 
 export const findRatesByCabinId = (cabinId) => {
-  return rateModel.findByCabinId(cabinId);
+  return rateDao.findByCabinId(cabinId);
 };
 
 export const findRateByBookingId = (bookingId) => {
-  return rateModel.findByBookingId(bookingId);
+  return rateDao.findByBookingId(bookingId);
 };
 
 export const createRateForBooking = async (currentUser, { bookingId, rating, comment }) => {
@@ -36,7 +36,7 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
     throw error;
   }
 
-  const booking = await bookingModel.findById(bookingId);
+  const booking = await bookingDao.findById(bookingId);
   if (!booking) {
     const error = new Error("Booking not found");
     error.status = 404;
@@ -55,14 +55,14 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
     throw error;
   }
 
-  const existedRate = await rateModel.findByBookingId(bookingId);
+  const existedRate = await rateDao.findByBookingId(bookingId);
   if (existedRate) {
     const error = new Error("Booking already rated");
     error.status = 409;
     throw error;
   }
 
-  return rateModel.create({
+  return rateDao.create({
     userId: getUserId(currentUser),
     cabinId: booking.cabinId,
     bookingId,

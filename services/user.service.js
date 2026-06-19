@@ -1,4 +1,4 @@
-import { findByEmail, updateByEmail, updatePassword } from "../models/user.model.js";
+import { findByEmail, updateByEmail, updatePassword } from "../dao/user.dao.js";
 import { comparePassword, hashPassword } from "../utils/hash.js";
 
 export const getProfileByEmail = async (email) => {

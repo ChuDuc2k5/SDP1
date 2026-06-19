@@ -1,5 +1,9 @@
 import { changePasswordByEmail } from "../services/user.service.js";
 
+export const renderChangePassword = (req, res) => {
+  res.render("vwUser/change-password");
+};
+
 export const changePassword = async (req, res) => {
   try {
     await changePasswordByEmail({

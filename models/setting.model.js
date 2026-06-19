@@ -1,41 +1,47 @@
-import db from '../dbHelper/db.js';
+export class Setting {
+  constructor(data = {}) {
+    this._id = data._id || null;
+    this.miniBookingLength = data.miniBookingLength ?? 1;
+    this.maxBookingLength = data.maxBookingLength ?? 30;
+    this.maxNumberOfGuests = data.maxNumberOfGuests ?? 10;
+    this.breakfastPrice = data.breakfastPrice ?? 15;
+    this.createdAt = data.createdAt || null;
+    this.updatedAt = data.updatedAt || null;
+  }
 
-const DEFAULT_SETTINGS = {
-    miniBookingLength: 1,
-    maxBookingLength: 30,
-    maxNumberOfGuests: 10,
-    breakfastPrice: 15
-};
+  static fromRow(row) {
+    if (!row) return null;
+    return new Setting(row);
+  }
 
-export default {
-    async getCurrent() {
-        const current = await db('settings').orderBy('_id', 'asc').first();
+  isValidGuestNumber(numGuests) {
+    const guests = Number(numGuests);
+    return (
+      Number.isInteger(guests) &&
+      guests > 0 &&
+      guests <= Number(this.maxNumberOfGuests || 0)
+    );
+  }
 
-        if (!current) {
-            const inserted = await db('settings')
-                .insert(DEFAULT_SETTINGS)
-                .returning('*');
-            return inserted?.[0] || DEFAULT_SETTINGS;
-        }
+  isValidBookingLength(numNights) {
+    const nights = Number(numNights);
+    const min = Number(this.miniBookingLength || 1);
+    const max = Number(this.maxBookingLength || 30);
 
-        return current;
-    },
+    return Number.isInteger(nights) && nights >= min && nights <= max;
+  }
 
-    async updateCurrent(payload) {
-        const current = await this.getCurrent();
+  toJSON() {
+    return {
+      _id: this._id,
+      miniBookingLength: this.miniBookingLength,
+      maxBookingLength: this.maxBookingLength,
+      maxNumberOfGuests: this.maxNumberOfGuests,
+      breakfastPrice: this.breakfastPrice,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
 
-        const updateData = {
-            miniBookingLength: Number(payload.miniBookingLength) || current.miniBookingLength,
-            maxBookingLength: Number(payload.maxBookingLength) || current.maxBookingLength,
-            maxNumberOfGuests: Number(payload.maxNumberOfGuests) || current.maxNumberOfGuests,
-            breakfastPrice: Number(payload.breakfastPrice) || current.breakfastPrice
-        };
-
-        const updated = await db('settings')
-            .where('_id', current._id)
-            .update(updateData)
-            .returning('*');
-
-        return updated?.[0] || { ...current, ...updateData };
-    }
-};
+export default Setting;

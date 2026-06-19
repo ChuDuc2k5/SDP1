@@ -1,70 +1,58 @@
-import db from "../config/db.js";
-
-export const findByEmail = (email) => {
-  return db("users").where({ email }).first();
-};
-
-export const findByEmailInsensitive = (email) => {
-  return db("users")
-    .whereRaw('LOWER("email") = ?', [String(email || "").trim().toLowerCase()])
-    .first();
-};
-
-export const findUserByEmail = findByEmail;
-
-export const create = async (user) => {
-  const inserted = await db("users")
-    .insert({
-      fullName: user.fullName,
-      email: user.email,
-      password: user.password,
-      phone: user.phone || null,
-      nationalId: user.nationalId || null,
-      dateOfBirth: user.dateOfBirth || null,
-      gender: user.gender || null,
-      address: user.address || null,
-      nationality: user.nationality || null,
-      role: user.role,
-    })
-    .returning("*");
-
-  return inserted?.[0] || null;
-};
-
-export const createUser = create;
-
-export const updatePassword = (email, password) => {
-  return db("users")
-    .where({ email })
-    .update({ password, updatedAt: db.fn.now() });
-};
-
-export const updateByEmail = async (email, data) => {
-  const allowedFields = [
-    "fullName",
-    "phone",
-    "nationalId",
-    "dateOfBirth",
-    "gender",
-    "address",
-    "nationality",
-  ];
-
-  const updateData = {};
-  for (const field of allowedFields) {
-    if (Object.prototype.hasOwnProperty.call(data, field)) {
-      updateData[field] = data[field] || null;
-    }
+export class User {
+  constructor(data = {}) {
+    this._id = data._id || null;
+    this.fullName = data.fullName || "";
+    this.email = data.email || "";
+    this.password = data.password || "";
+    this.phone = data.phone || null;
+    this.nationalId = data.nationalId || null;
+    this.dateOfBirth = data.dateOfBirth || null;
+    this.gender = data.gender || null;
+    this.address = data.address || null;
+    this.nationality = data.nationality || null;
+    this.role = data.role || "customer";
+    this.createdAt = data.createdAt || null;
+    this.updatedAt = data.updatedAt || null;
   }
 
-  updateData.updatedAt = db.fn.now();
+  static fromRow(row) {
+    if (!row) return null;
+    return new User(row);
+  }
 
-  const updated = await db("users")
-    .where({ email })
-    .update(updateData)
-    .returning("*");
+  isCustomer() {
+    return this.role === "customer";
+  }
 
-  return updated?.[0] || null;
-};
+  isCabinOwner() {
+    return this.role === "cabinOwner";
+  }
 
-export const updateUserProfile = updateByEmail;
+  isAdmin() {
+    return this.role === "admin" || this.isCabinOwner();
+  }
+
+  getDisplayName() {
+    return this.fullName || this.email || "User";
+  }
+
+  toJSON() {
+    return {
+      _id: this._id,
+      fullName: this.fullName,
+      email: this.email,
+      password: this.password,
+      phone: this.phone,
+      nationalId: this.nationalId,
+      dateOfBirth: this.dateOfBirth,
+      gender: this.gender,
+      address: this.address,
+      nationality: this.nationality,
+      role: this.role,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+}
+
+export default User;

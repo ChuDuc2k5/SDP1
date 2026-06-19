@@ -1,7 +1,9 @@
-import bookingModel from "../models/booking.model.js";
-import bookingPolicyModel from "../models/bookingPolicy.model.js";
-import cabinModel from "../models/cabin.model.js";
-import settingModel from "../models/setting.model.js";
+import bookingDao from "../dao/booking.dao.js";
+import bookingPolicyDao from "../dao/bookingPolicy.dao.js";
+import cabinDao from "../dao/cabin.dao.js";
+import settingDao from "../dao/setting.dao.js";
+import { Booking } from "../models/booking.model.js";
+import { Cabin } from "../models/cabin.model.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
 
 const CUSTOMER_EDIT_BLOCKED_STATUSES = ["checked-in", "checked-out"];
@@ -13,6 +15,7 @@ const OWNER_ALLOWED_STATUSES = [
   "cancelled",
   "pending",
 ];
+const BOOKING_VIEWS = ["upcoming", "history"];
 
 const isUuid = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -70,24 +73,25 @@ const assertAuthorized = (currentUser, booking) => {
 };
 
 const getBreakfastPrice = async (cabinId) => {
-  const policy = await bookingPolicyModel.findByCabinId(cabinId);
+  const policy = await bookingPolicyDao.findByCabinId(cabinId);
   if (policy?.breakfastPrice != null) {
     return Number(policy.breakfastPrice);
   }
 
-  const settings = await settingModel.getCurrent();
+  const settings = await settingDao.getCurrent();
   return Number(settings?.breakfastPrice || 15);
 };
 
 const buildPricing = async ({ cabin, startDate, endDate, numGuests, type, hasBreakfast }) => {
   const numNights = diffNights(startDate, endDate);
   const guests = Number(numGuests);
+  const cabinEntity = new Cabin(cabin);
 
   if (!Number.isInteger(guests) || guests <= 0) {
     throw new Error("numGuests must be greater than 0");
   }
 
-  if (guests > Number(cabin.maxCapacity)) {
+  if (!cabinEntity.canFitGuests(guests)) {
     throw new Error("numGuests exceeds cabin maxCapacity");
   }
 
@@ -125,7 +129,7 @@ export const listBookingsForUser = async (currentUser) => {
 
   if (currentUser.role === ROLE.CABIN_OWNER) {
     // TODO: When cabins has ownerId, restrict owners to bookings for their cabins.
-    return bookingModel.findAll();
+    return bookingDao.findAll();
   }
 
   const userId = getUserId(currentUser);
@@ -133,15 +137,86 @@ export const listBookingsForUser = async (currentUser) => {
     throw new Error("userId is required");
   }
 
-  return bookingModel.findByUserId(userId);
+  return bookingDao.findByUserId(userId);
 };
+
+export const listBookingsForUserPaginated = async (
+  currentUser,
+  { view = "upcoming", filters = {}, limit, offset },
+) => {
+  if (!currentUser) {
+    throw new Error("Unauthorized");
+  }
+
+  const userId = getUserId(currentUser);
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+
+  if (currentUser.role === ROLE.CABIN_OWNER) {
+    // Current schema has no cabin owner relation, so keep the existing owner scope.
+    if (view === "history") {
+      return bookingDao.findHistoryForCabinOwnerPaginated(
+        userId,
+        filters,
+        limit,
+        offset,
+      );
+    }
+
+    return bookingDao.findUpcomingForCabinOwnerPaginated(
+      userId,
+      filters,
+      limit,
+      offset,
+    );
+  }
+
+  if (view === "history") {
+    return bookingDao.findHistoryByUserIdPaginated(userId, limit, offset);
+  }
+
+  return bookingDao.findUpcomingByUserIdPaginated(userId, limit, offset);
+};
+
+export const countBookingsForUser = async (
+  currentUser,
+  { view = "upcoming", filters = {} } = {},
+) => {
+  if (!currentUser) {
+    throw new Error("Unauthorized");
+  }
+
+  const userId = getUserId(currentUser);
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+
+  if (currentUser.role === ROLE.CABIN_OWNER) {
+    // Current schema has no cabin owner relation, so keep the existing owner scope.
+    const result =
+      view === "history"
+        ? await bookingDao.countHistoryForCabinOwner(userId, filters)
+        : await bookingDao.countUpcomingForCabinOwner(userId, filters);
+    return Number(result?.total || 0);
+  }
+
+  const result =
+    view === "history"
+      ? await bookingDao.countHistoryByUserId(userId)
+      : await bookingDao.countUpcomingByUserId(userId);
+  return Number(result?.total || 0);
+};
+
+export const normalizeBookingView = (view) =>
+  BOOKING_VIEWS.includes(view) ? view : "upcoming";
 
 export const getBookingDetail = async (currentUser, bookingId) => {
   if (!isUuid(bookingId)) {
     throw new Error("Booking not found or unauthorized");
   }
 
-  const booking = await bookingModel.findById(bookingId);
+  const booking = await bookingDao.findById(bookingId);
   assertAuthorized(currentUser, booking);
   return booking;
 };
@@ -153,7 +228,7 @@ export const getCabinForNewBooking = async (currentUser, cabinId) => {
     throw new Error("Cabin not found");
   }
 
-  const cabin = await cabinModel.findById(cabinId);
+  const cabin = await cabinDao.findById(cabinId);
   if (!cabin) {
     throw new Error("Cabin not found");
   }
@@ -175,7 +250,7 @@ export const createBooking = async (currentUser, payload) => {
     throw new Error("cabinId is required");
   }
 
-  const cabin = await cabinModel.findById(cabinId);
+  const cabin = await cabinDao.findById(cabinId);
   if (!cabin) {
     throw new Error("Cabin not found");
   }
@@ -196,12 +271,12 @@ export const createBooking = async (currentUser, payload) => {
     hasBreakfast: payload.hasBreakfast,
   });
 
-  const hasOverlap = await bookingModel.hasOverlap({ cabinId, startDate, endDate });
+  const hasOverlap = await bookingDao.hasOverlap({ cabinId, startDate, endDate });
   if (hasOverlap) {
     throw new Error("Cabin is not available for the selected dates");
   }
 
-  return bookingModel.createBooking({
+  return bookingDao.create({
     userId,
     cabinId,
     startDate,
@@ -235,7 +310,7 @@ export const updateBooking = async (currentUser, bookingId, payload) => {
     hasBreakfast: booking.hasBreakfast,
   });
 
-  const hasOverlap = await bookingModel.hasOverlap({
+  const hasOverlap = await bookingDao.hasOverlap({
     cabinId: booking.cabinId,
     startDate,
     endDate,
@@ -261,15 +336,16 @@ export const updateBooking = async (currentUser, bookingId, payload) => {
     updateData.status = payload.status;
   }
 
-  return bookingModel.updateById(bookingId, updateData);
+  return bookingDao.update(bookingId, updateData);
 };
 
 export const cancelBooking = async (currentUser, bookingId) => {
   const booking = await getBookingDetail(currentUser, bookingId);
+  const bookingEntity = new Booking(booking);
 
-  if (booking.status === "checked-out") {
+  if (bookingEntity.isCheckedOut()) {
     throw new Error("Checked-out booking cannot be cancelled");
   }
 
-  return bookingModel.updateById(bookingId, { status: "cancelled" });
+  return bookingDao.update(bookingId, { status: "cancelled" });
 };

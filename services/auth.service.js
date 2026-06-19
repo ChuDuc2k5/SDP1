@@ -2,12 +2,13 @@ import {
   create as createUser,
   findByEmailInsensitive,
   updatePassword,
-} from "../models/user.model.js";
+} from "../dao/user.dao.js";
 import {
   createOTP,
   deleteOTPByEmail,
   getOTPByEmail,
-} from "../models/otp.model.js";
+} from "../dao/otp.dao.js";
+import { Otp } from "../models/otp.model.js";
 import { comparePassword, hashPassword } from "../utils/hash.js";
 import { generateToken } from "../utils/token.js";
 import { sendOtpEmail } from "../utils/mailer.js";
@@ -132,11 +133,13 @@ export const verifyOTPService = async ({ email, otp }) => {
     throw new Error("OTP not found");
   }
 
-  if (record.otp !== String(otp).trim()) {
+  const otpRecord = new Otp(record);
+
+  if (!otpRecord.isMatch(otp)) {
     throw new Error("Invalid OTP");
   }
 
-  if (new Date(record.expiresAt) < new Date()) {
+  if (otpRecord.isExpired()) {
     throw new Error("OTP expired");
   }
 
