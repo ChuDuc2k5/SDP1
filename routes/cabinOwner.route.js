@@ -11,7 +11,7 @@ import {
   saveCabin,
   saveSettings,
   storeCabin,
-} from "../controllers/admin.controller.js";
+} from "../controllers/cabinOwner.controller.js";
 import { requireCabinOwner } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();

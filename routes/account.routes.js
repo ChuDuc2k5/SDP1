@@ -1,8 +1,8 @@
 import express from "express";
 import {
-    redirectProfile,
-    renderGuestAccount,
-} from "../controllers/account.controller.js";
+  redirectProfile,
+  renderGuestAccount,
+} from "../controllers/user.controller.js";
 
 const router = express.Router();
 

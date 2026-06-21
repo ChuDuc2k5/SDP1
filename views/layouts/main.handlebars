@@ -35,7 +35,7 @@
                 </button>
 
                 <ul class="dropdown-menu dropdown-menu-end bg-dark border border-secondary">
-                    {{#if (eq user.role 'admin')}}
+                    {{#if (eq user.role 'cabinOwner')}}
                     <li>
                         <a class="dropdown-item text-light hover:bg-stone-700 hover:text-yellow-400 transition"
                             href="/admin/cabins">
@@ -51,7 +51,7 @@
                     <li>
                         <a class="dropdown-item text-light hover:bg-stone-700 hover:text-yellow-400 transition"
                             href="/admin/settings">
-                            Admin Settings
+                            Cabin Owner Settings
                         </a>
                     </li>
                     <li><hr class="dropdown-divider bg-secondary"></li>

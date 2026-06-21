@@ -71,11 +71,11 @@
                 class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">{{booking.observations}}</textarea>
         </div>
 
-        <!-- Status (Admin Only) -->
+        <!-- Status (Cabin Owner Only) -->
         {{#if currentUser}}
-        {{#if (eq currentUser.role 'admin')}}
+        {{#if (eq currentUser.role 'cabinOwner')}}
         <div>
-            <label class="block mb-2 text-yellow-500 font-semibold">Booking Status (Admin)</label>
+            <label class="block mb-2 text-yellow-500 font-semibold">Booking Status (Cabin Owner)</label>
             <select name="status" class="w-full p-2 rounded bg-stone-900 border border-stone-700 text-white">
                 <option value="confirmed" {{#if (eq booking.status 'confirmed' )}}selected{{/if}}>Confirmed</option>
                 <option value="cancelled" {{#if (eq booking.status 'cancelled' )}}selected{{/if}}>Cancelled</option>

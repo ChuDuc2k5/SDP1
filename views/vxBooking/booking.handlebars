@@ -2,7 +2,7 @@
     <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
             <h1 class="text-3xl font-bold text-yellow-500">
-                {{#if isAdmin}}Bookings Management{{else}}My Bookings{{/if}}
+                {{#if isCabinOwner}}Bookings Management{{else}}My Bookings{{/if}}
             </h1>
             <p class="mt-1 text-sm text-stone-400">
                 {{#if isHistoryView}}Past, cancelled, and checked-out bookings.{{else}}Upcoming active bookings sorted by nearest start date.{{/if}}
@@ -97,7 +97,7 @@
         <div class="bg-stone-800 p-6 rounded-xl border border-stone-700 flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
             <div>
                 <h2 class="text-xl font-semibold">{{this.cabin.name}}</h2>
-                {{#if ../isAdmin}}
+                {{#if ../isCabinOwner}}
                 <p class="mt-1 text-sm text-stone-300">
                     Guest: {{this.guest.name}}
                     {{#if this.guest.email}}<span class="text-stone-500">({{this.guest.email}})</span>{{/if}}

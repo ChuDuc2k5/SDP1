@@ -28,10 +28,6 @@ export class User {
     return this.role === "cabinOwner";
   }
 
-  isAdmin() {
-    return this.role === "admin" || this.isCabinOwner();
-  }
-
   getDisplayName() {
     return this.fullName || this.email || "User";
   }

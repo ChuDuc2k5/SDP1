@@ -432,7 +432,6 @@ export const getBookingPageData = async (currentUser, query = {}) => {
   return {
     bookings,
     empty: bookings.length === 0,
-    isAdmin: isCabinOwner,
     isCabinOwner,
     isCustomer: currentUser.role === ROLE.CUSTOMER,
     success: query.success === "1",

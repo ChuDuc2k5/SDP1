@@ -7,10 +7,10 @@ import authController from "./controllers/auth.controller.js";
 import { renderHome } from "./controllers/home.controller.js";
 import { attachUser } from "./middlewares/auth.middleware.js";
 import accountRoutes from "./routes/account.routes.js";
-import adminRoute from "./routes/admin.route.js";
 import authRoutes from "./routes/auth.routes.js";
 import bookingRoute from "./routes/booking.route.js";
 import cabinRoute from "./routes/cabin.route.js";
+import cabinOwnerRoute from "./routes/cabinOwner.route.js";
 import rateRoutes from "./routes/rate.route.js";
 import userRoutes from "./routes/user.route.js";
 
@@ -71,7 +71,8 @@ app.use("/account", accountRoutes);
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/rates", rateRoutes);
-app.use("/admin", adminRoute);
+// Keep the existing /admin URL for current views; it maps to cabinOwner management.
+app.use("/admin", cabinOwnerRoute);
 
 app.get("/", renderHome);
 

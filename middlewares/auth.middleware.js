@@ -61,5 +61,3 @@ export const requireCabinOwner = (req, res, next) => {
 
   next();
 };
-
-export const requireAdmin = requireCabinOwner;

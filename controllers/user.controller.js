@@ -3,6 +3,18 @@ import {
   updateProfile as updateProfileFacade,
 } from "../facades/user.facade.js";
 
+export const renderGuestAccount = (req, res) => {
+  res.render("vwAccount/guest");
+};
+
+export const redirectProfile = (req, res) => {
+  if (!req.currentUser) {
+    return res.redirect("/auth/login");
+  }
+
+  return res.redirect("/user/profile");
+};
+
 export const getProfile = async (req, res) => {
   try {
     const { user } = await getProfileData(req.currentUser);
