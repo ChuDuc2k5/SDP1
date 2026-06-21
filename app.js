@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import express from "express";
 import { engine } from "express-handlebars";
 import session from "express-session";
+import authController from "./controllers/auth.controller.js";
+import { renderHome } from "./controllers/home.controller.js";
 import { attachUser } from "./middlewares/auth.middleware.js";
 import accountRoutes from "./routes/account.routes.js";
 import adminRoute from "./routes/admin.route.js";
@@ -71,14 +73,9 @@ app.use("/user", userRoutes);
 app.use("/rates", rateRoutes);
 app.use("/admin", adminRoute);
 
-app.get("/", (req, res) => {
-  res.render("about");
-});
+app.get("/", renderHome);
 
-app.get("/logout", (req, res) => {
-  res.clearCookie("token");
-  req.session?.destroy(() => res.redirect("/"));
-});
+app.get("/logout", authController.logout);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

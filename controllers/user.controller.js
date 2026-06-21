@@ -1,11 +1,11 @@
 import {
-  getProfileByEmail,
-  updateProfileByEmail,
-} from "../services/user.service.js";
+  getProfileData,
+  updateProfile as updateProfileFacade,
+} from "../facades/user.facade.js";
 
 export const getProfile = async (req, res) => {
   try {
-    const user = await getProfileByEmail(req.currentUser.email);
+    const { user } = await getProfileData(req.currentUser);
     return res.render("vwUser/profile", { user });
   } catch (err) {
     return res.send("Server error: " + err.message);
@@ -16,7 +16,7 @@ export const updateProfile = async (req, res) => {
   let user = null;
 
   try {
-    user = await updateProfileByEmail(req.currentUser.email, req.body);
+    ({ user } = await updateProfileFacade(req.currentUser, req.body));
 
     return res.render("vwUser/profile", {
       user,
@@ -24,7 +24,7 @@ export const updateProfile = async (req, res) => {
     });
   } catch (err) {
     if (!user) {
-      user = await getProfileByEmail(req.currentUser.email);
+      ({ user } = await getProfileData(req.currentUser));
     }
 
     return res.render("vwUser/profile", {

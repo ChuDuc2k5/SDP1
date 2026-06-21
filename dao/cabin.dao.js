@@ -87,6 +87,10 @@ const cabinDao = {
     return inserted?.[0] || null;
   },
 
+  duplicate(id, data = {}) {
+    return this.duplicateById(id, data);
+  },
+
   async update(id, data) {
     const updated = await db("cabins")
       .where("_id", id)
@@ -121,6 +125,7 @@ export const {
   findById,
   create,
   duplicateById,
+  duplicate,
   update,
   delete: deleteCabin,
   add,

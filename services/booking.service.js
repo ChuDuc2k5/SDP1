@@ -1,10 +1,10 @@
 import bookingDao from "../dao/booking.dao.js";
-import cabinDao from "../dao/cabin.dao.js";
-import rateDao from "../dao/rate.dao.js";
 import { Booking } from "../models/booking.model.js";
 import { Cabin } from "../models/cabin.model.js";
 import { getUserId, ROLE, toViewUser } from "../utils/sessionUser.js";
 import { findBookingPolicyByCabinId } from "./bookingPolicy.service.js";
+import { getCabinById } from "./cabin.service.js";
+import { findRateByBookingId } from "./rate.service.js";
 import { getCurrentSettings } from "./setting.service.js";
 
 const BOOKINGS_PER_PAGE = 6;
@@ -479,7 +479,7 @@ export const getBookingDetailPageData = async (
   query = {},
 ) => {
   const booking = await getBookingDetail(currentUser, bookingId);
-  const existingRate = await rateDao.findByBookingId(bookingId);
+  const existingRate = await findRateByBookingId(bookingId);
   const canRate =
     currentUser.role === ROLE.CUSTOMER &&
     booking.userId === getUserId(currentUser) &&
@@ -511,12 +511,12 @@ export const getCabinForNewBooking = async (currentUser, cabinId) => {
     throw new Error("Cabin not found");
   }
 
-  const cabin = await cabinDao.findById(cabinId);
+  const cabin = await getCabinById(cabinId);
   if (!cabin) {
     throw new Error("Cabin not found");
   }
 
-  return Cabin.fromRow(cabin).toJSON();
+  return cabin;
 };
 
 export const getNewBookingPageData = async (currentUser, cabinId) => {
@@ -542,7 +542,7 @@ export const createBooking = async (currentUser, payload) => {
     throw new Error("cabinId is required");
   }
 
-  const cabin = await cabinDao.findById(cabinId);
+  const cabin = await getCabinById(cabinId);
   if (!cabin) {
     throw new Error("Cabin not found");
   }

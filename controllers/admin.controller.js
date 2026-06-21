@@ -1,17 +1,17 @@
 import {
-  createAdminCabin,
-  deleteAdminCabin,
-  duplicateAdminCabin,
+  createCabin,
+  deleteCabin,
+  duplicateCabin,
   getEditCabinPageData,
-  getManageCabinsPageData,
+  getCabinManagementPageData,
   getSettingsPageData,
-  updateAdminCabin,
-  updateSettingsPageData,
-} from "../services/admin.service.js";
+  updateCabin,
+  updateSettings,
+} from "../facades/admin.facade.js";
 
 export const listCabins = async (req, res) => {
   try {
-    const pageData = await getManageCabinsPageData();
+    const pageData = await getCabinManagementPageData(req.currentUser, req.query);
     res.render("vwAdmin/manage-cabin", pageData);
   } catch (err) {
     console.error("Failed to load cabins:", err.message);
@@ -28,7 +28,7 @@ export const renderCreateCabin = (req, res) => {
 
 export const storeCabin = async (req, res) => {
   try {
-    await createAdminCabin({ body: req.body, file: req.file });
+    await createCabin(req.currentUser, { body: req.body, file: req.file });
     res.redirect("/admin/cabins");
   } catch (err) {
     console.error("Failed to create cabin:", err.message);
@@ -38,7 +38,7 @@ export const storeCabin = async (req, res) => {
 
 export const renderEditCabin = async (req, res) => {
   try {
-    const pageData = await getEditCabinPageData(req.params.id);
+    const pageData = await getEditCabinPageData(req.currentUser, req.params.id);
     if (!pageData) return res.redirect("/admin/cabins");
 
     res.render("vwAdmin/edit-cabin", pageData);
@@ -50,8 +50,7 @@ export const renderEditCabin = async (req, res) => {
 
 export const saveCabin = async (req, res) => {
   try {
-    const cabin = await updateAdminCabin({
-      id: req.params.id,
+    const cabin = await updateCabin(req.currentUser, req.params.id, {
       body: req.body,
       file: req.file,
     });
@@ -69,7 +68,7 @@ export const saveCabin = async (req, res) => {
 
 export const removeCabin = async (req, res) => {
   try {
-    await deleteAdminCabin(req.params.id);
+    await deleteCabin(req.currentUser, req.params.id);
     res.redirect("/admin/cabins");
   } catch (err) {
     console.error("Failed to delete cabin:", err.message);
@@ -79,7 +78,7 @@ export const removeCabin = async (req, res) => {
 
 export const cloneCabin = async (req, res) => {
   try {
-    const duplicatedCabin = await duplicateAdminCabin(req.params.id);
+    const duplicatedCabin = await duplicateCabin(req.currentUser, req.params.id);
     if (!duplicatedCabin) {
       return res.redirect("/admin/cabins");
     }
@@ -93,7 +92,7 @@ export const cloneCabin = async (req, res) => {
 
 export const renderSettings = async (req, res) => {
   try {
-    const pageData = await getSettingsPageData();
+    const pageData = await getSettingsPageData(req.currentUser);
     res.render("vwAdmin/settings", pageData);
   } catch (err) {
     console.error("Failed to load settings:", err.message);
@@ -106,7 +105,7 @@ export const renderSettings = async (req, res) => {
 
 export const saveSettings = async (req, res) => {
   try {
-    const pageData = await updateSettingsPageData(req.body);
+    const pageData = await updateSettings(req.currentUser, req.body);
     res.render("vwAdmin/settings", pageData);
   } catch (err) {
     console.error("Failed to update settings:", err.message);

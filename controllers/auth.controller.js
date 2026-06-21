@@ -1,10 +1,11 @@
 import {
-  loginService,
-  signupService,
-  identityVerification,
-  verifyOTPService,
-  resetPasswordService,
-} from "../services/auth.service.js";
+  requestPasswordReset,
+  resetPassword,
+  signIn,
+  signUp,
+  logout as logoutFacade,
+  verifyOtp,
+} from "../facades/auth.facade.js";
 
 
 const authController = {
@@ -53,7 +54,7 @@ const authController = {
   // ===== LOGIN =====
   login: async (req, res) => {
     try {
-      const { token, user } = await loginService(req.body);
+      const { token, user } = await signIn(req.body);
 
       res.cookie("token", token, {
         httpOnly: true,
@@ -75,7 +76,8 @@ const authController = {
     }
   },
 
-  logout: (req, res) => {
+  logout: async (req, res) => {
+    await logoutFacade(req.session?.user);
     res.clearCookie("token");
     req.session?.destroy(() => res.redirect("/"));
   },
@@ -83,7 +85,7 @@ const authController = {
   // ===== SIGNUP =====
   signup: async (req, res) => {
     try {
-      await signupService(req.body);
+      await signUp(req.body);
 
       return res.redirect("/auth/login?success=Signup successful, login now!");
 
@@ -116,7 +118,7 @@ const authController = {
     }
 
     try {
-      await identityVerification({ email });
+      await requestPasswordReset(email);
 
       return res.redirect(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (err) {
@@ -139,7 +141,7 @@ const authController = {
     }
 
     try {
-      await verifyOTPService({ email, otp });
+      await verifyOtp(email, otp);
 
       return res.redirect(`/auth/reset-password?email=${encodeURIComponent(email)}`);
 
@@ -173,7 +175,7 @@ const authController = {
     }
 
     try {
-      await resetPasswordService({ email, password });
+      await resetPassword(email, password, confirmPassword);
 
       return res.redirect("/auth/login");
 

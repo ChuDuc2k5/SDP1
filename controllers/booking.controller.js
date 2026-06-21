@@ -6,7 +6,7 @@ import {
   getBookingPageData,
   getNewBookingPageData,
   updateBooking,
-} from "../services/booking.service.js";
+} from "../facades/booking.facade.js";
 
 export const listBookings = async (req, res) => {
   try {

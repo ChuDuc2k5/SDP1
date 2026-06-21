@@ -1,5 +1,15 @@
 import db from "../dbHelper/db.js";
 
+const isUuid = (value) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+
+export const findById = (id) => {
+  if (!id) return null;
+  return db("users").where("_id", id).first();
+};
+
 export const findByEmail = (email) => {
   return db("users").where({ email }).first();
 };
@@ -33,10 +43,44 @@ export const create = async (user) => {
 
 export const createUser = create;
 
-export const updatePassword = (email, password) => {
+export const updatePassword = (idOrEmail, password) => {
+  const where = isUuid(idOrEmail) ? { _id: idOrEmail } : { email: idOrEmail };
+
   return db("users")
-    .where({ email })
+    .where(where)
     .update({ password, updatedAt: db.fn.now() });
+};
+
+export const update = async (id, data) => {
+  if (!id) return null;
+
+  const allowedFields = [
+    "fullName",
+    "email",
+    "phone",
+    "nationalId",
+    "dateOfBirth",
+    "gender",
+    "address",
+    "nationality",
+    "role",
+  ];
+
+  const updateData = {};
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      updateData[field] = data[field] || null;
+    }
+  }
+
+  updateData.updatedAt = db.fn.now();
+
+  const updated = await db("users")
+    .where("_id", id)
+    .update(updateData)
+    .returning("*");
+
+  return updated?.[0] || null;
 };
 
 export const updateByEmail = async (email, data) => {
@@ -69,13 +113,22 @@ export const updateByEmail = async (email, data) => {
 
 export const updateUserProfile = updateByEmail;
 
+export const deleteUser = (id) => {
+  return db("users").where("_id", id).del();
+};
+
+export { deleteUser as delete };
+
 export default {
+  findById,
   findByEmail,
   findByEmailInsensitive,
   findUserByEmail,
   create,
   createUser,
+  update,
   updatePassword,
   updateByEmail,
   updateUserProfile,
+  delete: deleteUser,
 };

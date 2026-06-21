@@ -9,14 +9,28 @@ const DEFAULT_SETTINGS = {
 
 const settingDao = {
   async getCurrent() {
-    const current = await db("settings").orderBy("_id", "asc").first();
+    return this.createDefaultIfMissing();
+  },
 
-    if (!current) {
-      const inserted = await db("settings").insert(DEFAULT_SETTINGS).returning("*");
-      return inserted?.[0] || DEFAULT_SETTINGS;
-    }
+  findCurrent() {
+    return db("settings").orderBy("_id", "asc").first();
+  },
 
-    return current;
+  async createDefaultIfMissing() {
+    const current = await this.findCurrent();
+    if (current) return current;
+
+    const inserted = await db("settings").insert(DEFAULT_SETTINGS).returning("*");
+    return inserted?.[0] || DEFAULT_SETTINGS;
+  },
+
+  async update(id, payload) {
+    const updated = await db("settings")
+      .where("_id", id)
+      .update({ ...payload, updatedAt: db.fn.now() })
+      .returning("*");
+
+    return updated?.[0] || null;
   },
 
   async updateCurrent(payload) {
@@ -30,16 +44,14 @@ const settingDao = {
       breakfastPrice: Number(payload.breakfastPrice) || current.breakfastPrice,
     };
 
-    const updated = await db("settings")
-      .where("_id", current._id)
-      .update(updateData)
-      .returning("*");
-
-    return updated?.[0] || { ...current, ...updateData };
+    return (await this.update(current._id, updateData)) || { ...current, ...updateData };
   },
 };
 
 export const getCurrent = () => settingDao.getCurrent();
+export const findCurrent = () => settingDao.findCurrent();
+export const createDefaultIfMissing = () => settingDao.createDefaultIfMissing();
+export const update = (id, payload) => settingDao.update(id, payload);
 export const updateCurrent = (payload) => settingDao.updateCurrent(payload);
 
 export default settingDao;

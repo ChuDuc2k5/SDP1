@@ -6,6 +6,29 @@ export const findImagesByCabinId = async (cabinId) => {
   return images.map((image) => CabinImage.fromRow(image).toJSON());
 };
 
+export const findCoverImageByCabinId = async (cabinId) => {
+  const image = await imageDao.findCoverByCabinId(cabinId);
+  return CabinImage.fromRow(image)?.toJSON() || null;
+};
+
+export const createImage = async (data) => {
+  const image = await imageDao.create(data);
+  return CabinImage.fromRow(image)?.toJSON() || null;
+};
+
+export const updateImage = async (id, data) => {
+  const image = await imageDao.update(id, data);
+  return CabinImage.fromRow(image)?.toJSON() || null;
+};
+
+export const deleteImage = async (id) => {
+  return imageDao.delete(id);
+};
+
 export default {
   findImagesByCabinId,
+  findCoverImageByCabinId,
+  createImage,
+  updateImage,
+  deleteImage,
 };

@@ -1,11 +1,11 @@
 import {
-  getCabinDetail,
-  getPublicCabinsPageData,
-} from "../services/cabin.service.js";
+  getCabinDetailPageData,
+  getCabinsPageData,
+} from "../facades/cabin.facade.js";
 
 export const listPublicCabins = async (req, res) => {
   try {
-    const pageData = await getPublicCabinsPageData(req.query);
+    const pageData = await getCabinsPageData(req.query, req.currentUser);
     res.render("vwCabins/index", pageData);
   } catch (error) {
     console.error("Failed to list cabins:", error.message);
@@ -15,7 +15,7 @@ export const listPublicCabins = async (req, res) => {
 
 export const showCabinDetail = async (req, res) => {
   try {
-    const detail = await getCabinDetail(req.params.id);
+    const detail = await getCabinDetailPageData(req.params.id, req.currentUser);
     if (!detail) return res.redirect("/cabins");
 
     res.render("vwCabins/detail", detail);

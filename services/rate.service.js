@@ -16,6 +16,11 @@ export const findRateByBookingId = async (bookingId) => {
   return toRateView(rate);
 };
 
+export const findRateById = async (ratingId) => {
+  const rate = await rateDao.findById(ratingId);
+  return toRateView(rate);
+};
+
 export const createRateForBooking = async (currentUser, { bookingId, rating, comment }) => {
   if (!currentUser) {
     const error = new Error("Unauthorized");
@@ -78,4 +83,51 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
   });
 
   return toRateView(createdRate);
+};
+
+const assertRateOwner = (currentUser, rate) => {
+  if (!currentUser) {
+    const error = new Error("Unauthorized");
+    error.status = 401;
+    throw error;
+  }
+
+  if (!rate) {
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (currentUser.role !== ROLE.CUSTOMER || rate.userId !== getUserId(currentUser)) {
+    const error = new Error("Forbidden");
+    error.status = 403;
+    throw error;
+  }
+};
+
+export const updateRate = async (currentUser, ratingId, { rating, comment }) => {
+  const existingRate = await rateDao.findById(ratingId);
+  assertRateOwner(currentUser, existingRate);
+
+  const numericRating = Number(rating);
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+    const error = new Error("rating must be from 1 to 5");
+    error.status = 400;
+    throw error;
+  }
+
+  const updatedRate = await rateDao.update(ratingId, {
+    rating: numericRating,
+    comment: comment?.trim() || null,
+  });
+
+  return toRateView(updatedRate);
+};
+
+export const deleteRate = async (currentUser, ratingId) => {
+  const existingRate = await rateDao.findById(ratingId);
+  assertRateOwner(currentUser, existingRate);
+
+  await rateDao.delete(ratingId);
+  return true;
 };

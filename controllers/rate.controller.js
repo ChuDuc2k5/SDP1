@@ -1,11 +1,11 @@
 import {
-  createRateForBooking,
-  findRatesByCabinId,
-} from "../services/rate.service.js";
+  getRatesByCabin,
+  submitRating,
+} from "../facades/rate.facade.js";
 
 export const listRatesByCabin = async (req, res) => {
   try {
-    const rates = await findRatesByCabinId(req.params.cabinId);
+    const { rates } = await getRatesByCabin(req.params.cabinId);
 
     res.json({
       success: true,
@@ -22,7 +22,11 @@ export const listRatesByCabin = async (req, res) => {
 
 export const submitRateForm = async (req, res) => {
   try {
-    const createdRate = await createRateForBooking(req.currentUser, req.body);
+    const createdRate = await submitRating(
+      req.currentUser,
+      req.body.bookingId,
+      req.body,
+    );
     return res.redirect(`/booking/detail/${createdRate.bookingId}?rate=success`);
   } catch (error) {
     console.error("Failed to submit rate:", error.message);
@@ -32,7 +36,11 @@ export const submitRateForm = async (req, res) => {
 
 export const submitRateJson = async (req, res) => {
   try {
-    const createdRate = await createRateForBooking(req.currentUser, req.body);
+    const createdRate = await submitRating(
+      req.currentUser,
+      req.body.bookingId,
+      req.body,
+    );
 
     res.status(201).json({
       success: true,

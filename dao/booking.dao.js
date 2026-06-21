@@ -255,7 +255,7 @@ const bookingDao = {
     return db("bookings").where("_id", id).del();
   },
 
-  async hasOverlap({ cabinId, startDate, endDate, excludeBookingId = null }) {
+  findOverlappingBookings(cabinId, startDate, endDate, excludeBookingId = null) {
     const query = db("bookings")
       .where("cabinId", cabinId)
       .whereIn("status", ACTIVE_STATUSES)
@@ -266,6 +266,16 @@ const bookingDao = {
       query.whereNot("_id", excludeBookingId);
     }
 
+    return query;
+  },
+
+  async hasOverlap({ cabinId, startDate, endDate, excludeBookingId = null }) {
+    const query = this.findOverlappingBookings(
+      cabinId,
+      startDate,
+      endDate,
+      excludeBookingId,
+    );
     const existing = await query.first("_id");
     return Boolean(existing);
   },
@@ -300,6 +310,7 @@ export const {
   create,
   update,
   delete: deleteBooking,
+  findOverlappingBookings,
   hasOverlap,
   createBooking,
   updateById,
