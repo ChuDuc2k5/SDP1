@@ -480,6 +480,9 @@ export const getBookingDetailPageData = async (
 ) => {
   const booking = await getBookingDetail(currentUser, bookingId);
   const existingRate = await rateDao.findByBookingId(bookingId);
+  const canManageRate =
+    currentUser.role === ROLE.CUSTOMER &&
+    existingRate?.userId === getUserId(currentUser);
   const canRate =
     currentUser.role === ROLE.CUSTOMER &&
     booking.userId === getUserId(currentUser) &&
@@ -489,9 +492,18 @@ export const getBookingDetailPageData = async (
   return {
     booking,
     existingRate,
+    canManageRate,
     canRate,
     rateSuccess: query.rate === "success",
     rateError: query.rate === "error",
+    rateUpdated: query.rate === "updated",
+    rateDeleted: query.rate === "deleted",
+    rateErrorMessage:
+      query.action === "update"
+        ? "Failed to update rating. Please check your input and try again."
+        : query.action === "delete"
+          ? "Failed to delete rating. Please try again."
+          : "Failed to submit rating. Please try again.",
   };
 };
 

@@ -2,11 +2,30 @@ import cabinDao from "../dao/cabin.dao.js";
 import { Cabin } from "../models/cabin.model.js";
 import { CabinSortFactory } from "../patterns/factory/cabin/factoryPattern.js";
 import { findImagesByCabinId } from "./image.service.js";
-import { findRatesByCabinId } from "./rate.service.js";
+import {
+  findRatesByCabinId,
+  findRateSummariesByCabinIds,
+} from "./rate.service.js";
 
 const CABINS_PER_PAGE = 9;
 
 const toCabinView = (row) => Cabin.fromRow(row)?.toJSON();
+
+const addRatingSummaries = async (cabins) => {
+  const cabinViews = cabins.map(toCabinView).filter(Boolean);
+  const summaries = await findRateSummariesByCabinIds(
+    cabinViews.map((cabin) => cabin._id),
+  );
+  const summaryByCabinId = new Map(
+    summaries.map((summary) => [summary.cabinId, summary]),
+  );
+
+  return cabinViews.map((cabin) => ({
+    ...cabin,
+    avgRating: summaryByCabinId.get(cabin._id)?.avgRating || null,
+    reviewCount: summaryByCabinId.get(cabin._id)?.reviewCount || 0,
+  }));
+};
 
 const parsePage = (value) => {
   const page = Number(value);
@@ -174,7 +193,7 @@ const buildCabinPayload = (body, file, existingCabin = null) => {
 export const listCabins = async (sortType = "default") => {
   const strategy = CabinSortFactory.getStrategy(sortType);
   const cabins = await strategy.apply(cabinDao.findAllQuery());
-  return cabins.map(toCabinView);
+  return addRatingSummaries(cabins);
 };
 
 export const listCabinsPaginated = async ({
@@ -184,7 +203,7 @@ export const listCabinsPaginated = async ({
 }) => {
   const strategy = CabinSortFactory.getStrategy(sortType);
   const cabins = await strategy.apply(cabinDao.findPaginated({ limit, offset }));
-  return cabins.map(toCabinView);
+  return addRatingSummaries(cabins);
 };
 
 export const countCabins = async () => {

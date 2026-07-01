@@ -1,7 +1,16 @@
 import {
   createRateForBooking,
+  deleteRate,
   findRatesByCabinId,
+  updateRate,
 } from "../services/rate.service.js";
+
+const buildBookingDetailUrl = (bookingId, params) => {
+  if (!bookingId) return "/booking";
+
+  const query = new URLSearchParams(params);
+  return `/booking/detail/${encodeURIComponent(bookingId)}?${query.toString()}`;
+};
 
 export const listRatesByCabin = async (req, res) => {
   try {
@@ -44,5 +53,45 @@ export const submitRateJson = async (req, res) => {
       success: false,
       message: error.status ? error.message : "Internal Server Error",
     });
+  }
+};
+
+export const updateRateForm = async (req, res) => {
+  try {
+    const updatedRate = await updateRate(
+      req.currentUser,
+      req.params.ratingId,
+      req.body,
+    );
+
+    return res.redirect(
+      buildBookingDetailUrl(updatedRate.bookingId, { rate: "updated" }),
+    );
+  } catch (error) {
+    console.error("Failed to update rate:", error.message);
+    return res.redirect(
+      buildBookingDetailUrl(req.body.bookingId, {
+        rate: "error",
+        action: "update",
+      }),
+    );
+  }
+};
+
+export const deleteRateForm = async (req, res) => {
+  try {
+    const deletedRate = await deleteRate(req.currentUser, req.params.ratingId);
+
+    return res.redirect(
+      buildBookingDetailUrl(deletedRate.bookingId, { rate: "deleted" }),
+    );
+  } catch (error) {
+    console.error("Failed to delete rate:", error.message);
+    return res.redirect(
+      buildBookingDetailUrl(req.body.bookingId, {
+        rate: "error",
+        action: "delete",
+      }),
+    );
   }
 };
