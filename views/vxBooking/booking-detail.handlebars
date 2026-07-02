@@ -13,7 +13,11 @@
 
         {{#if rateError}}
         <div class="bg-red-500/10 border border-red-500 text-red-400 px-4 py-2 rounded-lg mb-4">
+<<<<<<< Updated upstream
             {{rateErrorMessage}}
+=======
+            {{#if rateMessage}}{{rateMessage}}{{else}}Rating request failed. Please try again.{{/if}}
+>>>>>>> Stashed changes
         </div>
         {{/if}}
 
@@ -64,11 +68,14 @@
         </div>
 
         <div class="mt-8 pt-6 border-t border-stone-700">
-            <h3 class="text-lg font-semibold text-yellow-400 mb-3">Your Rating</h3>
+            <h3 class="text-lg font-semibold text-yellow-400 mb-3">
+                {{#if isOwnBooking}}Your Rating{{else}}Customer Rating{{/if}}
+            </h3>
 
             {{#if existingRate}}
             <div class="bg-stone-900 border border-stone-700 rounded-lg p-4 space-y-2">
                 <p><strong>Score:</strong> {{existingRate.rating}} / 5</p>
+<<<<<<< Updated upstream
                 <p><strong>Comment:</strong> {{#if existingRate.comment}}{{existingRate.comment}}{{else}}No comment{{/if}}</p>
 
                 {{#if canManageRate}}
@@ -76,6 +83,41 @@
                     <button type="button" id="show-rate-edit" class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
                         Edit Rating
                     </button>
+=======
+                <p><strong>Comment:</strong> {{#if existingRate.comment}}{{existingRate.comment}}{{else}}No comment.{{/if}}</p>
+
+                {{#if canManageRate}}
+                <div class="flex flex-wrap gap-3 pt-3">
+                    <details class="w-full">
+                        <summary class="inline-block cursor-pointer list-none bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+                            Edit Rating
+                        </summary>
+
+                        <form action="/rates/{{existingRate._id}}/update" method="POST" class="mt-4 space-y-4 border-t border-stone-700 pt-4">
+                            <input type="hidden" name="bookingId" value="{{booking._id}}">
+
+                            <div>
+                                <label class="block text-sm mb-2">Rating (1-5)</label>
+                                <select name="rating" required class="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2">
+                                    <option value="5" {{#if (eq existingRate.rating 5)}}selected{{/if}}>5 - Excellent</option>
+                                    <option value="4" {{#if (eq existingRate.rating 4)}}selected{{/if}}>4 - Very good</option>
+                                    <option value="3" {{#if (eq existingRate.rating 3)}}selected{{/if}}>3 - Good</option>
+                                    <option value="2" {{#if (eq existingRate.rating 2)}}selected{{/if}}>2 - Fair</option>
+                                    <option value="1" {{#if (eq existingRate.rating 1)}}selected{{/if}}>1 - Poor</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm mb-2">Comment</label>
+                                <textarea name="comment" rows="3" maxlength="500" class="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2" placeholder="Share your experience...">{{existingRate.comment}}</textarea>
+                            </div>
+
+                            <button type="submit" class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+                                Update Rating
+                            </button>
+                        </form>
+                    </details>
+>>>>>>> Stashed changes
 
                     <form action="/rates/{{existingRate._id}}/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this rating?');">
                         <input type="hidden" name="bookingId" value="{{booking._id}}">
@@ -84,6 +126,7 @@
                         </button>
                     </form>
                 </div>
+<<<<<<< Updated upstream
 
                 <form id="rate-edit-form" action="/rates/{{existingRate._id}}/update" method="POST" class="hidden space-y-4 pt-4 border-t border-stone-700">
                     <input type="hidden" name="bookingId" value="{{booking._id}}">
@@ -113,6 +156,8 @@
                         </button>
                     </div>
                 </form>
+=======
+>>>>>>> Stashed changes
                 {{/if}}
             </div>
             {{else}}
@@ -147,6 +192,7 @@
 
     </div>
 </section>
+<<<<<<< Updated upstream
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -158,3 +204,5 @@
         hideButton?.addEventListener("click", () => editForm?.classList.add("hidden"));
     });
 </script>
+=======
+>>>>>>> Stashed changes

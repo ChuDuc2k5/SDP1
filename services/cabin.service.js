@@ -4,7 +4,11 @@ import { CabinSortFactory } from "../patterns/factory/cabin/factoryPattern.js";
 import { findImagesByCabinId } from "./image.service.js";
 import {
   findRatesByCabinId,
+<<<<<<< Updated upstream
   findRateSummariesByCabinIds,
+=======
+  findRatingSummariesByCabinIds,
+>>>>>>> Stashed changes
 } from "./rate.service.js";
 
 const CABINS_PER_PAGE = 9;
@@ -255,6 +259,22 @@ export const getPublicCabinsPageData = async (query = {}) => {
     limit: CABINS_PER_PAGE,
     offset,
   });
+  const ratingSummaries = await findRatingSummariesByCabinIds(
+    cabins.map((cabin) => cabin._id),
+  );
+  const ratingSummaryByCabinId = new Map(
+    ratingSummaries.map((summary) => [summary.cabinId, summary]),
+  );
+  const cabinsWithRatings = cabins.map((cabin) => {
+    const ratingSummary = ratingSummaryByCabinId.get(cabin._id);
+
+    return {
+      ...cabin,
+      avgRating: ratingSummary?.avgRating || null,
+      reviewCount: ratingSummary?.reviewCount || 0,
+      hasRating: Boolean(ratingSummary),
+    };
+  });
   const pagination = buildPagination({
     baseQuery,
     currentPage,
@@ -262,8 +282,8 @@ export const getPublicCabinsPageData = async (query = {}) => {
   });
 
   return {
-    cabins,
-    empty: cabins.length === 0,
+    cabins: cabinsWithRatings,
+    empty: cabinsWithRatings.length === 0,
     activeSort: sortType,
     ...pagination,
   };

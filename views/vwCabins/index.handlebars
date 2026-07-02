@@ -36,8 +36,13 @@
                             -${{discount}} OFF
                         </div>
                         {{/if}}
+<<<<<<< Updated upstream
                         {{#if avgRating}}
                         <div class="absolute bottom-4 right-4 bg-stone-950/90 text-yellow-400 text-sm font-bold px-3 py-1.5 rounded-full border border-yellow-500/40 shadow-lg" title="{{reviewCount}} guest reviews">
+=======
+                        {{#if hasRating}}
+                        <div class="absolute bottom-4 right-4 rounded-full border border-yellow-400/50 bg-stone-950/90 px-3 py-1 text-sm font-bold text-yellow-400 shadow-lg backdrop-blur-sm" title="{{reviewCount}} reviews">
+>>>>>>> Stashed changes
                             &#9733; {{avgRating}} / 5
                         </div>
                         {{/if}}

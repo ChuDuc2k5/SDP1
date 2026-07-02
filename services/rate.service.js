@@ -5,6 +5,22 @@ import { Rate } from "../models/rate.model.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
 
 const toRateView = (row) => Rate.fromRow(row)?.toJSON();
+const normalizeComment = (comment) =>
+  typeof comment === "string" ? comment.trim() || null : null;
+
+const assertCustomer = (currentUser) => {
+  if (!currentUser) {
+    const error = new Error("Unauthorized");
+    error.status = 401;
+    throw error;
+  }
+
+  if (currentUser.role !== ROLE.CUSTOMER) {
+    const error = new Error("Only customers can manage ratings");
+    error.status = 403;
+    throw error;
+  }
+};
 
 const isUuid = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -88,6 +104,19 @@ export const findRateSummariesByCabinIds = async (cabinIds) => {
   }));
 };
 
+<<<<<<< Updated upstream
+=======
+export const findRatingSummariesByCabinIds = async (cabinIds = []) => {
+  const summaries = await rateDao.findSummariesByCabinIds(cabinIds);
+
+  return summaries.map((summary) => ({
+    cabinId: summary.cabinId,
+    avgRating: Number(summary.avgRating).toFixed(1),
+    reviewCount: Number(summary.reviewCount || 0),
+  }));
+};
+
+>>>>>>> Stashed changes
 export const createRateForBooking = async (currentUser, { bookingId, rating, comment }) => {
   assertCustomer(currentUser);
 
@@ -127,22 +156,62 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
   return toRateView(createdRate);
 };
 
+<<<<<<< Updated upstream
 export const updateRate = async (currentUser, ratingId, { rating, comment }) => {
   await findOwnedRate(currentUser, ratingId);
 
   const updatedRate = await rateDao.updateById(ratingId, {
     rating: parseRating(rating),
+=======
+const assertRateOwner = (currentUser, rate) => {
+  assertCustomer(currentUser);
+
+  if (!rate) {
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (rate.userId !== getUserId(currentUser)) {
+    const error = new Error("Forbidden");
+    error.status = 403;
+    throw error;
+  }
+};
+
+export const updateRate = async (currentUser, ratingId, { rating, comment }) => {
+  assertCustomer(currentUser);
+  const existingRate = await rateDao.findById(ratingId);
+  assertRateOwner(currentUser, existingRate);
+
+  const numericRating = Number(rating);
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+    const error = new Error("rating must be from 1 to 5");
+    error.status = 400;
+    throw error;
+  }
+
+  const updatedRate = await rateDao.update(ratingId, {
+    rating: numericRating,
+>>>>>>> Stashed changes
     comment: normalizeComment(comment),
   });
 
   if (!updatedRate) {
+<<<<<<< Updated upstream
     throw createHttpError("Rating not found", 404);
+=======
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+>>>>>>> Stashed changes
   }
 
   return toRateView(updatedRate);
 };
 
 export const deleteRate = async (currentUser, ratingId) => {
+<<<<<<< Updated upstream
   await findOwnedRate(currentUser, ratingId);
 
   const deletedRate = await rateDao.deleteById(ratingId);
@@ -151,4 +220,18 @@ export const deleteRate = async (currentUser, ratingId) => {
   }
 
   return toRateView(deletedRate);
+=======
+  assertCustomer(currentUser);
+  const existingRate = await rateDao.findById(ratingId);
+  assertRateOwner(currentUser, existingRate);
+
+  const deletedCount = await rateDao.delete(ratingId);
+  if (!deletedCount) {
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+  }
+
+  return toRateView(existingRate);
+>>>>>>> Stashed changes
 };

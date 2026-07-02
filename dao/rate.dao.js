@@ -23,6 +23,7 @@ const rateDao = {
     return db("rates").where("userId", userId).orderBy("createdAt", "desc");
   },
 
+<<<<<<< Updated upstream
   findSummariesByCabinIds(cabinIds) {
     if (!Array.isArray(cabinIds) || cabinIds.length === 0) return [];
 
@@ -31,6 +32,17 @@ const rateDao = {
       .select("cabinId")
       .avg({ avgRating: "rating" })
       .count({ reviewCount: "_id" })
+=======
+  findSummariesByCabinIds(cabinIds = []) {
+    const uniqueCabinIds = [...new Set(cabinIds.filter(Boolean))];
+    if (uniqueCabinIds.length === 0) return [];
+
+    return db("rates")
+      .whereIn("cabinId", uniqueCabinIds)
+      .select("cabinId")
+      .avg({ avgRating: "rating" })
+      .count({ reviewCount: "*" })
+>>>>>>> Stashed changes
       .groupBy("cabinId");
   },
 

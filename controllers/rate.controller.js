@@ -1,4 +1,5 @@
 import {
+<<<<<<< Updated upstream
   createRateForBooking,
   deleteRate,
   findRatesByCabinId,
@@ -10,6 +11,35 @@ const buildBookingDetailUrl = (bookingId, params) => {
 
   const query = new URLSearchParams(params);
   return `/booking/detail/${encodeURIComponent(bookingId)}?${query.toString()}`;
+};
+=======
+  deleteRating,
+  getRatesByCabin,
+  submitRating,
+  updateRating,
+} from "../facades/rate.facade.js";
+>>>>>>> Stashed changes
+
+const isUuid = (value) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || ""),
+  );
+
+const buildBookingDetailRedirect = (bookingId, rateStatus, error = null) => {
+  if (!isUuid(bookingId)) {
+    return "/booking";
+  }
+
+  const params = new URLSearchParams({ rate: rateStatus });
+  if (error) {
+    const message =
+      error.status && error.status < 500
+        ? error.message
+        : "Rating request failed. Please try again.";
+    params.set("message", message);
+  }
+
+  return `/booking/detail/${bookingId}?${params.toString()}`;
 };
 
 export const listRatesByCabin = async (req, res) => {
@@ -31,11 +61,61 @@ export const listRatesByCabin = async (req, res) => {
 
 export const submitRateForm = async (req, res) => {
   try {
+<<<<<<< Updated upstream
     const createdRate = await createRateForBooking(req.currentUser, req.body);
     return res.redirect(`/booking/detail/${createdRate.bookingId}?rate=success`);
+=======
+    const createdRate = await submitRating(
+      req.currentUser,
+      req.body.bookingId,
+      req.body,
+    );
+    return res.redirect(
+      buildBookingDetailRedirect(createdRate.bookingId, "success"),
+    );
+>>>>>>> Stashed changes
   } catch (error) {
     console.error("Failed to submit rate:", error.message);
-    return res.redirect(`/booking/detail/${req.body.bookingId}?rate=error`);
+    return res.redirect(
+      buildBookingDetailRedirect(req.body.bookingId, "error", error),
+    );
+  }
+};
+
+export const updateRateForm = async (req, res) => {
+  try {
+    const updatedRate = await updateRating(
+      req.currentUser,
+      req.params.ratingId,
+      req.body,
+    );
+
+    return res.redirect(
+      buildBookingDetailRedirect(updatedRate.bookingId, "updated"),
+    );
+  } catch (error) {
+    console.error("Failed to update rate:", error.message);
+    return res.redirect(
+      buildBookingDetailRedirect(req.body.bookingId, "error", error),
+    );
+  }
+};
+
+export const deleteRateForm = async (req, res) => {
+  try {
+    const deletedRate = await deleteRating(
+      req.currentUser,
+      req.params.ratingId,
+    );
+
+    return res.redirect(
+      buildBookingDetailRedirect(deletedRate.bookingId, "deleted"),
+    );
+  } catch (error) {
+    console.error("Failed to delete rate:", error.message);
+    return res.redirect(
+      buildBookingDetailRedirect(req.body.bookingId, "error", error),
+    );
   }
 };
 
