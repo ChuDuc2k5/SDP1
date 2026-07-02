@@ -21,7 +21,7 @@ export const findRateById = async (ratingId) => {
   return toRateView(rate);
 };
 
-export const createRateForBooking = async (currentUser, { bookingId, rating, comment }) => {
+const assertCustomer = (currentUser) => {
   if (!currentUser) {
     const error = new Error("Unauthorized");
     error.status = 401;
@@ -29,10 +29,17 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
   }
 
   if (currentUser.role !== ROLE.CUSTOMER) {
-    const error = new Error("Only customers can rate bookings");
+    const error = new Error("Only customers can manage ratings");
     error.status = 403;
     throw error;
   }
+};
+
+export const createRateForBooking = async (
+  currentUser,
+  { bookingId, rating, comment },
+) => {
+  assertCustomer(currentUser);
 
   if (!bookingId || !rating) {
     const error = new Error("bookingId and rating are required");
@@ -86,11 +93,7 @@ export const createRateForBooking = async (currentUser, { bookingId, rating, com
 };
 
 const assertRateOwner = (currentUser, rate) => {
-  if (!currentUser) {
-    const error = new Error("Unauthorized");
-    error.status = 401;
-    throw error;
-  }
+  assertCustomer(currentUser);
 
   if (!rate) {
     const error = new Error("Rating not found");
@@ -98,7 +101,7 @@ const assertRateOwner = (currentUser, rate) => {
     throw error;
   }
 
-  if (currentUser.role !== ROLE.CUSTOMER || rate.userId !== getUserId(currentUser)) {
+  if (rate.userId !== getUserId(currentUser)) {
     const error = new Error("Forbidden");
     error.status = 403;
     throw error;
@@ -121,6 +124,12 @@ export const updateRate = async (currentUser, ratingId, { rating, comment }) => 
     comment: comment?.trim() || null,
   });
 
+  if (!updatedRate) {
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+  }
+
   return toRateView(updatedRate);
 };
 
@@ -128,6 +137,12 @@ export const deleteRate = async (currentUser, ratingId) => {
   const existingRate = await rateDao.findById(ratingId);
   assertRateOwner(currentUser, existingRate);
 
-  await rateDao.delete(ratingId);
-  return true;
+  const deletedCount = await rateDao.delete(ratingId);
+  if (!deletedCount) {
+    const error = new Error("Rating not found");
+    error.status = 404;
+    throw error;
+  }
+
+  return toRateView(existingRate);
 };

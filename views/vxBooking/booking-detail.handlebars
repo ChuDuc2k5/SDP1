@@ -11,9 +11,21 @@
         </div>
         {{/if}}
 
-        {{#if rateError}}
+        {{#if rateUpdated}}
+        <div class="bg-green-500/10 border border-green-500 text-green-400 px-4 py-2 rounded-lg mb-4">
+            Rating updated successfully.
+        </div>
+        {{/if}}
+
+        {{#if rateDeleted}}
+        <div class="bg-green-500/10 border border-green-500 text-green-400 px-4 py-2 rounded-lg mb-4">
+            Rating deleted successfully.
+        </div>
+        {{/if}}
+
+        {{#if rateErrorMessage}}
         <div class="bg-red-500/10 border border-red-500 text-red-400 px-4 py-2 rounded-lg mb-4">
-            Failed to submit rating. Please try again.
+            {{rateErrorMessage}}
         </div>
         {{/if}}
 
@@ -55,9 +67,65 @@
             <h3 class="text-lg font-semibold text-yellow-400 mb-3">Your Rating</h3>
 
             {{#if existingRate}}
-            <div class="bg-stone-900 border border-stone-700 rounded-lg p-4 space-y-2">
+            <div class="bg-stone-900 border border-stone-700 rounded-lg p-4 space-y-3">
                 <p><strong>Score:</strong> {{existingRate.rating}} / 5</p>
-                <p><strong>Comment:</strong> {{existingRate.comment}}</p>
+                <p>
+                    <strong>Comment:</strong>
+                    {{#if existingRate.comment}}{{existingRate.comment}}{{else}}No comment provided.{{/if}}
+                </p>
+
+                {{#if canManageRate}}
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <button type="button"
+                        onclick="document.getElementById('edit-rating-form').classList.toggle('hidden')"
+                        class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+                        Edit Rating
+                    </button>
+
+                    <form action="/rates/{{existingRate._id}}/delete" method="POST"
+                        onsubmit="return confirm('Delete this rating? This action cannot be undone.');">
+                        <input type="hidden" name="bookingId" value="{{booking._id}}">
+                        <button type="submit" class="bg-red-600 px-4 py-2 rounded-lg hover:bg-red-500">
+                            Delete Rating
+                        </button>
+                    </form>
+                </div>
+
+                <form id="edit-rating-form" action="/rates/{{existingRate._id}}/update" method="POST"
+                    class="hidden mt-4 pt-4 border-t border-stone-700 space-y-4">
+                    <input type="hidden" name="bookingId" value="{{booking._id}}">
+
+                    <div>
+                        <label class="block text-sm mb-2" for="edit-rating-score">Rating (1-5)</label>
+                        <select id="edit-rating-score" name="rating" required
+                            class="w-full bg-stone-950 border border-stone-700 rounded-lg px-3 py-2">
+                            <option value="5" {{#if (eq existingRate.rating 5)}}selected{{/if}}>5 - Excellent</option>
+                            <option value="4" {{#if (eq existingRate.rating 4)}}selected{{/if}}>4 - Very good</option>
+                            <option value="3" {{#if (eq existingRate.rating 3)}}selected{{/if}}>3 - Good</option>
+                            <option value="2" {{#if (eq existingRate.rating 2)}}selected{{/if}}>2 - Fair</option>
+                            <option value="1" {{#if (eq existingRate.rating 1)}}selected{{/if}}>1 - Poor</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-2" for="edit-rating-comment">Comment</label>
+                        <textarea id="edit-rating-comment" name="comment" rows="3" maxlength="500"
+                            class="w-full bg-stone-950 border border-stone-700 rounded-lg px-3 py-2"
+                            placeholder="Share your experience...">{{existingRate.comment}}</textarea>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button type="submit" class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">
+                            Update Rating
+                        </button>
+                        <button type="button"
+                            onclick="document.getElementById('edit-rating-form').classList.add('hidden')"
+                            class="border border-stone-600 text-stone-300 px-4 py-2 rounded-lg hover:bg-stone-800">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+                {{/if}}
             </div>
             {{else}}
                 {{#if canRate}}
@@ -65,8 +133,8 @@
                     <input type="hidden" name="bookingId" value="{{booking._id}}">
 
                     <div>
-                        <label class="block text-sm mb-2">Rating (1-5)</label>
-                        <select name="rating" required class="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2">
+                        <label class="block text-sm mb-2" for="new-rating-score">Rating (1-5)</label>
+                        <select id="new-rating-score" name="rating" required class="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2">
                             <option value="">Select score</option>
                             <option value="5">5 - Excellent</option>
                             <option value="4">4 - Very good</option>
@@ -77,8 +145,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm mb-2">Comment</label>
-                        <textarea name="comment" rows="3" maxlength="500" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2" placeholder="Share your experience..."></textarea>
+                        <label class="block text-sm mb-2" for="new-rating-comment">Comment</label>
+                        <textarea id="new-rating-comment" name="comment" rows="3" maxlength="500" class="w-full bg-stone-900 border border-stone-700 rounded-lg px-3 py-2" placeholder="Share your experience..."></textarea>
                     </div>
 
                     <button type="submit" class="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400">

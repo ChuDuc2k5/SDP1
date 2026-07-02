@@ -31,7 +31,8 @@ export class DiscountDescending extends SortStrategy {
 
 export class RatingDescending extends SortStrategy {
     apply(query) {
-
-        return query.orderBy('regularPrice', 'asc');
+        return query
+            .orderByRaw('AVG("r"."rating") DESC NULLS LAST')
+            .orderBy('name', 'asc');
     }
 }

@@ -1,7 +1,23 @@
 import {
+  deleteRating,
   getRatesByCabin,
   submitRating,
+  updateRating,
 } from "../facades/rate.facade.js";
+
+const bookingDetailUrl = (bookingId, query) => {
+  if (!bookingId) return "/booking";
+  return `/booking/detail/${encodeURIComponent(bookingId)}?${query}`;
+};
+
+const rateFailureQuery = (action, error) => {
+  let reason = "unexpected";
+  if (error.status === 400) reason = "invalid";
+  if (error.status === 403) reason = "forbidden";
+  if (error.status === 404) reason = "not-found";
+
+  return `rate=error&action=${action}&reason=${reason}`;
+};
 
 export const listRatesByCabin = async (req, res) => {
   try {
@@ -52,5 +68,48 @@ export const submitRateJson = async (req, res) => {
       success: false,
       message: error.status ? error.message : "Internal Server Error",
     });
+  }
+};
+
+export const updateRateForm = async (req, res) => {
+  try {
+    const updatedRate = await updateRating(
+      req.currentUser,
+      req.params.ratingId,
+      req.body,
+    );
+
+    return res.redirect(
+      bookingDetailUrl(updatedRate.bookingId, "rate=updated"),
+    );
+  } catch (error) {
+    console.error("Failed to update rate:", error.message);
+    return res.redirect(
+      bookingDetailUrl(
+        req.body.bookingId,
+        rateFailureQuery("update", error),
+      ),
+    );
+  }
+};
+
+export const deleteRateForm = async (req, res) => {
+  try {
+    const deletedRate = await deleteRating(
+      req.currentUser,
+      req.params.ratingId,
+    );
+
+    return res.redirect(
+      bookingDetailUrl(deletedRate.bookingId, "rate=deleted"),
+    );
+  } catch (error) {
+    console.error("Failed to delete rate:", error.message);
+    return res.redirect(
+      bookingDetailUrl(
+        req.body.bookingId,
+        rateFailureQuery("delete", error),
+      ),
+    );
   }
 };

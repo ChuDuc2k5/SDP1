@@ -36,6 +36,12 @@
                             -${{discount}} OFF
                         </div>
                         {{/if}}
+                        {{#if avgRating}}
+                        <div class="absolute bottom-4 right-4 rounded-full border border-yellow-400/50 bg-stone-950/90 px-3 py-1 text-sm font-bold text-yellow-400 shadow-lg backdrop-blur-sm"
+                            title="{{reviewCount}} guest reviews" aria-label="Average rating {{avgRating}} out of 5">
+                            &#9733; {{avgRating}} / 5
+                        </div>
+                        {{/if}}
                     </div>
 
                     <div class="p-6 flex-1 flex flex-col">

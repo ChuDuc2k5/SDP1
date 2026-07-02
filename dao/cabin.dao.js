@@ -30,9 +30,17 @@ const applyFilters = (query, filters = {}) => {
   return query;
 };
 
+const selectWithRatingSummary = () =>
+  db("cabins as c")
+    .leftJoin("rates as r", "r.cabinId", "c._id")
+    .select("c.*")
+    .avg({ avgRating: "r.rating" })
+    .count({ reviewCount: "r._id" })
+    .groupBy("c._id");
+
 const cabinDao = {
   findAllQuery() {
-    return db("cabins").select("*");
+    return selectWithRatingSummary();
   },
 
   findAll() {
@@ -40,7 +48,7 @@ const cabinDao = {
   },
 
   findPaginated({ limit, offset, filters = {} }) {
-    const query = applyFilters(db("cabins").select("*"), filters);
+    const query = applyFilters(selectWithRatingSummary(), filters);
 
     if (limit !== undefined) {
       query.limit(limit);

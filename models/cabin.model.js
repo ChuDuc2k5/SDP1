@@ -9,6 +9,9 @@ export class Cabin {
     this.description = data.description || "";
     this.location = data.location || null;
     this.amenities = data.amenities || null;
+    this.avgRating =
+      data.avgRating == null ? null : Number(data.avgRating).toFixed(1);
+    this.reviewCount = Number(data.reviewCount || 0);
     this.createdAt = data.createdAt || null;
     this.updatedAt = data.updatedAt || null;
   }
@@ -63,6 +66,8 @@ export class Cabin {
       description: this.description,
       location: this.location,
       amenities: this.amenities,
+      avgRating: this.avgRating,
+      reviewCount: this.reviewCount,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -2,6 +2,27 @@ import * as bookingService from "../services/booking.service.js";
 import * as rateService from "../services/rate.service.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
 
+const getRateErrorMessage = (query = {}) => {
+  if (query.rate !== "error") return null;
+
+  if (query.reason === "invalid") {
+    return "Rating must be a whole number from 1 to 5.";
+  }
+  if (query.reason === "forbidden") {
+    return "You can only update or delete your own rating.";
+  }
+  if (query.reason === "not-found") {
+    return "Rating not found. It may already have been deleted.";
+  }
+  if (query.action === "update") {
+    return "Failed to update rating. Please try again.";
+  }
+  if (query.action === "delete") {
+    return "Failed to delete rating. Please try again.";
+  }
+  return "Failed to submit rating. Please try again.";
+};
+
 export const getBookingPageData = async (currentUser, query = {}) => {
   return bookingService.getBookingPageData(currentUser, query);
 };
@@ -25,13 +46,20 @@ export const getBookingDetailPageData = async (
     booking.userId === getUserId(currentUser) &&
     booking.status === "checked-out" &&
     !existingRate;
+  const canManageRate =
+    currentUser?.role === ROLE.CUSTOMER &&
+    booking.userId === getUserId(currentUser) &&
+    Boolean(existingRate);
 
   return {
     booking,
     existingRate,
     canRate,
+    canManageRate,
     rateSuccess: query.rate === "success",
-    rateError: query.rate === "error",
+    rateErrorMessage: getRateErrorMessage(query),
+    rateUpdated: query.rate === "updated",
+    rateDeleted: query.rate === "deleted",
   };
 };
 
