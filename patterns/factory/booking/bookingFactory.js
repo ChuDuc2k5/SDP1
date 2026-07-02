@@ -10,7 +10,7 @@ export class BookingFactory {
             ...bookingData,
             cabinPrice: finalPrice,
             type: type,
-            status: 'confirmed'
+            status: 'pending'
         };
     }
 

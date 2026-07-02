@@ -6,6 +6,7 @@ import {
   getBookingPageData,
   getNewBookingPageData,
   updateBooking,
+  updateBookingStatus,
 } from "../facades/booking.facade.js";
 
 export const listBookings = async (req, res) => {
@@ -90,6 +91,21 @@ export const saveBooking = async (req, res) => {
     res.redirect(`/booking/detail/${updatedBooking._id}`);
   } catch (error) {
     console.error("Failed to update booking:", error.message);
+    res.status(400).send(error.message);
+  }
+};
+
+export const saveBookingStatus = async (req, res) => {
+  try {
+    const updatedBooking = await updateBookingStatus(
+      req.currentUser,
+      req.params.id,
+      req.body.status,
+    );
+
+    res.redirect(`/booking/detail/${updatedBooking._id}`);
+  } catch (error) {
+    console.error("Failed to update booking status:", error.message);
     res.status(400).send(error.message);
   }
 };

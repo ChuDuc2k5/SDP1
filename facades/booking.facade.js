@@ -79,6 +79,14 @@ export const updateBooking = async (currentUser, bookingId, updateData) => {
   return bookingService.updateBooking(currentUser, bookingId, updateData);
 };
 
+export const updateBookingStatus = async (
+  currentUser,
+  bookingId,
+  nextStatus,
+) => {
+  return bookingService.updateBookingStatus(currentUser, bookingId, nextStatus);
+};
+
 export const cancelBooking = async (currentUser, bookingId) => {
   return bookingService.cancelBooking(currentUser, bookingId);
 };
@@ -91,5 +99,6 @@ export default {
   getNewBookingPageData,
   createBooking,
   updateBooking,
+  updateBookingStatus,
   cancelBooking,
 };

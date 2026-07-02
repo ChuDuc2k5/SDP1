@@ -3,29 +3,27 @@ import { Booking } from "../models/booking.model.js";
 import { Cabin } from "../models/cabin.model.js";
 import { getUserId, ROLE, toViewUser } from "../utils/sessionUser.js";
 import { findBookingPolicyByCabinId } from "./bookingPolicy.service.js";
+import {
+  BOOKING_STATUSES,
+  canTransitionBookingStatus,
+  getOwnerStatusActions,
+  syncCompletedBookingStatus,
+  syncCompletedBookingStatuses,
+} from "./bookingStatus.service.js";
 import { getCabinById } from "./cabin.service.js";
 import { findRateByBookingId } from "./rate.service.js";
 import { getCurrentSettings } from "./setting.service.js";
 
 const BOOKINGS_PER_PAGE = 6;
-const CUSTOMER_EDIT_BLOCKED_STATUSES = ["checked-in", "checked-out"];
-const OWNER_ALLOWED_STATUSES = [
-  "unconfirmed",
-  "confirmed",
-  "checked-in",
-  "checked-out",
-  "cancelled",
-  "pending",
-];
+const EDITABLE_STATUSES = ["pending", "confirmed"];
 const BOOKING_VIEWS = ["upcoming", "history"];
-const STATUS_OPTIONS = [
-  "unconfirmed",
-  "pending",
-  "confirmed",
-  "checked-in",
-  "checked-out",
-  "cancelled",
-];
+const STATUS_LABELS = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  "checked-in": "Checked-in",
+  "checked-out": "Checked-out",
+  cancelled: "Cancelled",
+};
 
 const isUuid = (value) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -170,7 +168,7 @@ const buildOwnerFilters = (query = {}) => {
 
   return {
     q,
-    status: STATUS_OPTIONS.includes(status) ? status : "",
+    status: BOOKING_STATUSES.includes(status) ? status : "",
     dateFrom: isValidDateInput(dateFrom) ? dateFrom : "",
     dateTo: isValidDateInput(dateTo) ? dateTo : "",
   };
@@ -291,10 +289,30 @@ const buildPagination = ({ basePath, baseQuery, currentPage, totalPages }) => {
 
 const toBookingView = (row) => Booking.fromRow(row)?.toJSON();
 
+const withBookingPermissions = (currentUser, booking) => {
+  if (!booking) return booking;
+
+  const isCabinOwner = currentUser.role === ROLE.CABIN_OWNER;
+  const ownerActions = isCabinOwner
+    ? getOwnerStatusActions(booking)
+    : { canConfirm: false, canCancel: false, canCheckIn: false };
+
+  return {
+    ...booking,
+    isCabinOwner,
+    canEditBooking: EDITABLE_STATUSES.includes(booking.status),
+    canCancelBooking:
+      !isCabinOwner && canTransitionBookingStatus(booking, "cancelled"),
+    ...ownerActions,
+  };
+};
+
 export const listBookingsForUser = async (currentUser) => {
   if (!currentUser) {
     throw new Error("Unauthorized");
   }
+
+  await syncCompletedBookingStatuses();
 
   if (currentUser.role === ROLE.CABIN_OWNER) {
     // TODO: When cabins has ownerId, restrict owners to bookings for their cabins.
@@ -389,6 +407,8 @@ export const getBookingPageData = async (currentUser, query = {}) => {
     throw new Error("Unauthorized");
   }
 
+  await syncCompletedBookingStatuses();
+
   const requestedPage = parsePage(query.page);
   const activeView = normalizeBookingView(query.view);
   const isCabinOwner = currentUser.role === ROLE.CABIN_OWNER;
@@ -443,9 +463,9 @@ export const getBookingPageData = async (currentUser, query = {}) => {
     clearFiltersUrl: `/booking?view=${activeView}`,
     ownerFilters,
     filterActive,
-    statusOptions: STATUS_OPTIONS.map((status) => ({
+    statusOptions: BOOKING_STATUSES.map((status) => ({
       value: status,
-      label: status,
+      label: STATUS_LABELS[status],
       selected: status === ownerFilters.status,
     })),
     emptyTitle: filterActive
@@ -469,7 +489,8 @@ export const getBookingDetail = async (currentUser, bookingId) => {
 
   const booking = await bookingDao.findById(bookingId);
   assertAuthorized(currentUser, booking);
-  return toBookingView(booking);
+  const syncedBooking = await syncCompletedBookingStatus(booking);
+  return withBookingPermissions(currentUser, toBookingView(syncedBooking));
 };
 
 export const getBookingDetailPageData = async (
@@ -573,7 +594,7 @@ export const createBooking = async (currentUser, payload) => {
     startDate,
     endDate,
     ...pricing,
-    status: "confirmed",
+    status: "pending",
     isPaid: false,
     observations: observations?.trim() || null,
   });
@@ -582,11 +603,12 @@ export const createBooking = async (currentUser, payload) => {
 export const updateBooking = async (currentUser, bookingId, payload) => {
   const booking = await getBookingDetail(currentUser, bookingId);
 
-  if (
-    currentUser.role === ROLE.CUSTOMER &&
-    CUSTOMER_EDIT_BLOCKED_STATUSES.includes(booking.status)
-  ) {
-    throw new Error("Booking cannot be edited after check-in");
+  if (Object.prototype.hasOwnProperty.call(payload, "status")) {
+    return updateBookingStatus(currentUser, bookingId, payload.status, booking);
+  }
+
+  if (!EDITABLE_STATUSES.includes(booking.status)) {
+    throw new Error("Booking cannot be edited in its current status");
   }
 
   const startDate = payload.startDate || booking.startDate;
@@ -619,24 +641,53 @@ export const updateBooking = async (currentUser, bookingId, payload) => {
     observations: payload.observations?.trim() || null,
   };
 
-  if (
-    currentUser.role === ROLE.CABIN_OWNER &&
-    payload.status &&
-    OWNER_ALLOWED_STATUSES.includes(payload.status)
-  ) {
-    updateData.status = payload.status;
+  return bookingDao.update(bookingId, updateData);
+};
+
+export const updateBookingStatus = async (
+  currentUser,
+  bookingId,
+  nextStatus,
+  loadedBooking = null,
+) => {
+  if (currentUser?.role !== ROLE.CABIN_OWNER) {
+    throw new Error("Only cabin owners can update booking status.");
   }
 
-  return bookingDao.update(bookingId, updateData);
+  const booking = loadedBooking || (await getBookingDetail(currentUser, bookingId));
+  if (!canTransitionBookingStatus(booking, nextStatus)) {
+    throw new Error("Invalid booking status transition.");
+  }
+
+  const updatedBooking = await bookingDao.updateStatusIfCurrent(
+    bookingId,
+    [booking.status],
+    nextStatus,
+  );
+
+  if (!updatedBooking) {
+    throw new Error("Invalid booking status transition.");
+  }
+
+  return updatedBooking;
 };
 
 export const cancelBooking = async (currentUser, bookingId) => {
   const booking = await getBookingDetail(currentUser, bookingId);
-  const bookingEntity = new Booking(booking);
 
-  if (bookingEntity.isCheckedOut()) {
-    throw new Error("Checked-out booking cannot be cancelled");
+  if (!canTransitionBookingStatus(booking, "cancelled")) {
+    throw new Error("Invalid booking status transition.");
   }
 
-  return bookingDao.update(bookingId, { status: "cancelled" });
+  const cancelledBooking = await bookingDao.updateStatusIfCurrent(
+    bookingId,
+    [booking.status],
+    "cancelled",
+  );
+
+  if (!cancelledBooking) {
+    throw new Error("Invalid booking status transition.");
+  }
+
+  return cancelledBooking;
 };

@@ -36,7 +36,7 @@ export class Booking {
     this.cabinPrice = data.cabinPrice ?? 0;
     this.extrasPrice = data.extrasPrice ?? 0;
     this.totalPrice = data.totalPrice ?? null;
-    this.status = data.status || "unconfirmed";
+    this.status = data.status || "pending";
     this.hasBreakfast = Boolean(data.hasBreakfast);
     this.isPaid = Boolean(data.isPaid);
     this.observations = data.observations || null;

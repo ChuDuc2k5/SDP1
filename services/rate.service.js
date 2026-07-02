@@ -3,6 +3,7 @@ import rateDao from "../dao/rate.dao.js";
 import { Booking } from "../models/booking.model.js";
 import { Rate } from "../models/rate.model.js";
 import { getUserId, ROLE } from "../utils/sessionUser.js";
+import { syncCompletedBookingStatus } from "./bookingStatus.service.js";
 
 const toRateView = (row) => Rate.fromRow(row)?.toJSON();
 
@@ -54,7 +55,8 @@ export const createRateForBooking = async (
     throw error;
   }
 
-  const booking = await bookingDao.findById(bookingId);
+  const storedBooking = await bookingDao.findById(bookingId);
+  const booking = await syncCompletedBookingStatus(storedBooking);
   if (!booking) {
     const error = new Error("Booking not found");
     error.status = 404;

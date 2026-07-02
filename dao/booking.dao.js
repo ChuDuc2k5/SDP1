@@ -1,14 +1,13 @@
 import db from "../dbHelper/db.js";
 
-const ACTIVE_STATUSES = ["unconfirmed", "pending", "confirmed", "checked-in"];
+const ACTIVE_STATUSES = ["pending", "confirmed", "checked-in"];
 const HISTORY_STATUSES = ["cancelled", "checked-out"];
 const FILTERABLE_STATUSES = [
-  "unconfirmed",
+  "pending",
   "confirmed",
   "checked-in",
   "checked-out",
   "cancelled",
-  "pending",
 ];
 
 const selectWithCabin = () =>
@@ -251,6 +250,34 @@ const bookingDao = {
     return updated?.[0] || null;
   },
 
+  async updateStatusIfCurrent(id, currentStatuses, nextStatus) {
+    const updated = await db("bookings")
+      .where("_id", id)
+      .whereIn("status", currentStatuses)
+      .update({ status: nextStatus, updatedAt: db.fn.now() })
+      .returning("*");
+
+    return updated?.[0] || null;
+  },
+
+  async syncCompletedStatusById(id) {
+    const updated = await db("bookings")
+      .where("_id", id)
+      .whereIn("status", ["confirmed", "checked-in"])
+      .where("endDate", "<", db.raw("CURRENT_DATE"))
+      .update({ status: "checked-out", updatedAt: db.fn.now() })
+      .returning("*");
+
+    return updated?.[0] || null;
+  },
+
+  syncCompletedStatuses() {
+    return db("bookings")
+      .whereIn("status", ["confirmed", "checked-in"])
+      .where("endDate", "<", db.raw("CURRENT_DATE"))
+      .update({ status: "checked-out", updatedAt: db.fn.now() });
+  },
+
   delete(id) {
     return db("bookings").where("_id", id).del();
   },
@@ -309,6 +336,9 @@ export const {
   findById,
   create,
   update,
+  updateStatusIfCurrent,
+  syncCompletedStatusById,
+  syncCompletedStatuses,
   delete: deleteBooking,
   findOverlappingBookings,
   hasOverlap,

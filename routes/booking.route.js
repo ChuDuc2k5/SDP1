@@ -6,6 +6,7 @@ import {
   renderEditBooking,
   renderNewBooking,
   saveBooking,
+  saveBookingStatus,
   showBookingDetail,
   storeBooking,
 } from "../controllers/booking.controller.js";
@@ -22,6 +23,7 @@ router.get("/new/:cabinId", renderNewBooking);
 router.post("/create", storeBooking);
 router.get("/edit/:id", renderEditBooking);
 router.post("/edit/:id/cancel", cancelBookingById);
+router.post("/:id/status", saveBookingStatus);
 router.post("/edit/:id", saveBooking);
 
 export default router;
