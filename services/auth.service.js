@@ -36,10 +36,10 @@ export const loginService = async ({ email, password }) => {
   }
 
   const user = await findByEmailInsensitive(cleanEmail);
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error("Email or password is incorrect");
 
   const isMatch = await comparePassword(password, user.password);
-  if (!isMatch) throw new Error("Wrong password");
+  if (!isMatch) throw new Error("Email or password is incorrect");
 
   const sessionUser = normalizeUser(User.fromRow(user).toSafeJSON());
   const token = generateToken(sessionUser);
@@ -63,7 +63,9 @@ export const signupService = async (data) => {
   }
 
   const exist = await findByEmailInsensitive(email);
-  if (exist) throw new Error("Email already exists");
+  if (exist) {
+    throw new Error("Email already exists. Please sign in or use another email.");
+  }
 
   const hashed = await hashPassword(data.password);
 

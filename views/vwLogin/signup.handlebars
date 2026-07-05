@@ -10,34 +10,47 @@
        style="width: 420px; z-index: 2; border-radius: 20px;">
 
     <h2 class="text-center fw-bold">Create Account</h2>
+    <p class="text-info text-center small mb-3">
+    
+    </p>
     {{!-- <p class="text-warning text-center fst-italic">
       Join the Tranquility Retreat family!
     </p> --}}
+
+    {{#if error}}
+      <div class="alert alert-danger text-center mb-3">{{error}}</div>
+    {{/if}}
 
     <form method="POST" action="/auth/signup">
 
       <!-- Full Name -->
       <div class="mb-3">
-        <label class="form-label text-warning">Full Name</label>
+        <label class="form-label text-warning">Full Name <span class="text-danger">*</span></label>
         <input name="fullName"
                class="form-control bg-dark text-white border-warning"
-               placeholder="Enter your full name" />
+               placeholder="Enter your full name"
+               value="{{oldData.fullName}}"
+               required />
       </div>
 
       <!-- Email -->
       <div class="mb-3">
-        <label class="form-label text-warning">Email</label>
+        <label class="form-label text-warning">Email <span class="text-danger">*</span></label>
         <input name="email" type="email"
                class="form-control bg-dark text-white border-warning"
-               placeholder="example@gmail.com" />
+               placeholder="example@gmail.com"
+               value="{{oldData.email}}"
+               required />
       </div>
 
       <!-- Password -->
       <div class="mb-3">
-        <label class="form-label text-warning">Password</label>
+        <label class="form-label text-warning">Password <span class="text-danger">*</span></label>
         <input name="password" type="password"
                class="form-control bg-dark text-white border-warning"
-               placeholder="At least 6 characters" />
+               placeholder="At least 6 characters"
+               minlength="6"
+               required />
       </div>
 
       <!-- Phone -->
@@ -45,7 +58,8 @@
         <label class="form-label text-warning">Phone Number</label>
         <input name="phone"
                class="form-control bg-dark text-white border-warning"
-               placeholder="10–11 digits" />
+               placeholder="10–11 digits"
+               value="{{oldData.phone}}" />
       </div>
 
       <!-- National ID -->
@@ -53,14 +67,16 @@
         <label class="form-label text-warning">National ID</label>
         <input name="nationalId"
                class="form-control bg-dark text-white border-warning"
-               placeholder="9–12 digits" />
+               placeholder="9–12 digits"
+               value="{{oldData.nationalId}}" />
       </div>
 
       <!-- Date of Birth -->
       <div class="mb-3">
         <label class="form-label text-warning">Date of Birth</label>
         <input name="dateOfBirth" type="date"
-               class="form-control bg-dark text-white border-warning" />
+               class="form-control bg-dark text-white border-warning"
+               value="{{oldData.dateOfBirth}}" />
       </div>
 
       <button type="submit"

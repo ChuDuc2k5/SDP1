@@ -16,11 +16,16 @@ const authController = {
 
     res.render("vwLogin/login", {
       success,
+      error: null,
+      oldData: null,
     });
   },
 
   getSignupPage: (req, res) => {
-    res.render("vwLogin/signup");
+    res.render("vwLogin/signup", {
+      error: null,
+      oldData: null,
+    });
   },
 
   getForgotPassword: (req, res) => {
@@ -71,7 +76,8 @@ const authController = {
       return res.redirect("/");
     } catch (err) {
       return res.render("vwLogin/login", {
-        error: err.message,
+        error: err.message || "Email or password is incorrect",
+        oldData: req.body,
       });
     }
   },
